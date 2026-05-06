@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<!-- v2 -->
+<html lang="he">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>The Hebrew University of Jerusalem: Unpacking Evil</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --huji-blue:       #003875;
+    --huji-blue-mid:   #0050a0;
+    --huji-blue-light: #dce8f5;
+    --huji-maroon:     #6b2737;
+    --bg:        #f4f6f9;
+    --paper:     #ffffff;
+    --border:    #d0d8e4;
+    --border-dark:#b0bcd0;
+    --ink:       #1a1e26;
+    --ink-mid:   #3a4255;
+    --ink-light: #7a859a;
+    --user-bg:   #dce8f5;
+    --user-text: #002a5e;
+    --shadow-sm: 0 1px 3px rgba(0,56,117,0.08);
+    --shadow-md: 0 2px 16px rgba(0,56,117,0.12);
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: Arial, 'Arial Hebrew', sans-serif;
+    font-size: 16px;
+    direction: ltr;
+    text-align: left;
+  }
+
+  #app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    max-width: 840px;
+    margin: 0 auto;
+    background: var(--paper);
+    box-shadow: var(--shadow-md);
+  }
+
+  /* ── Header ── */
+  #header {
+    background: var(--huji-blue);
+    padding: 0.75rem 1.4rem;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  #header img {
+    height: 52px;
+    width: auto;
+    flex-shrink: 0;
+    background: white;
+    border-radius: 3px;
+    padding: 3px 5px;
+  }
+  #header-text { border-left: 1px solid rgba(255,255,255,0.25); padding-left: 1rem; }
+  #header-text h1 {
+    font-family: Arial, sans-serif;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #ffffff;
+    line-height: 1.35;
+  }
+  #header-text p {
+    font-size: 0.73rem;
+    color: rgba(255,255,255,0.65);
+    margin-top: 2px;
+    font-style: italic;
+  }
+
+
+
+  /* ── Chat ── */
+  #chat-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1.3rem 1.4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.95rem;
+  }
+
+  .msg { display: flex; flex-direction: column; }
+  .msg.user      { align-items: flex-end; }
+  .msg.assistant { align-items: flex-start; }
+  .msg.sys       { align-items: center; }
+
+  .speaker-tag {
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+    color: var(--ink-light);
+  }
+  .msg.user .speaker-tag { text-align: right; }
+
+  .bubble { padding: 0.75rem 1.05rem; border-radius: 6px; font-size: 0.98rem; line-height: 1.72; direction: auto; unicode-bidi: plaintext; text-align: start; }
+
+  .msg.user .bubble {
+    background: var(--user-bg);
+    border: 1px solid #a8c0d8;
+    color: var(--user-text);
+    max-width: 68%;
+    font-family: Arial, sans-serif;
+    unicode-bidi: plaintext;
+    direction: auto;
+    text-align: start;
+  }
+  .msg.assistant .bubble {
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--huji-blue-mid);
+    border-right: 3px solid var(--huji-blue-mid);
+    color: var(--ink);
+    max-width: 100%; width: 100%;
+    font-family: Arial, 'Arial Hebrew', Georgia, serif;
+    font-size: 0.96rem;
+    box-shadow: var(--shadow-sm);
+  }
+  .msg.sys .bubble {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--ink-light);
+    font-size: 0.78rem;
+    font-style: italic;
+    text-align: center;
+    max-width: 90%;
+    padding: 0.42rem 1rem;
+    border-radius: 20px;
+  }
+
+  .opening-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--huji-blue);
+    margin-bottom: 0.7rem;
+    padding-bottom: 0.6rem;
+    border-bottom: 2px solid var(--huji-blue-light);
+  }
+  .opening-note {
+    color: var(--ink-mid);
+    font-size: 0.88rem;
+    margin-bottom: 0.8rem;
+    line-height: 1.7;
+  }
+  .opening-prompt {
+    font-weight: 700;
+    color: var(--huji-blue);
+    font-size: 1rem;
+    line-height: 1.7;
+  }
+  .persona-block:last-child { margin-bottom: 0; }
+  .persona-name {
+    font-family: Arial, sans-serif;
+    font-size: 0.66rem; font-weight: 700;
+    letter-spacing: 0.09em; text-transform: uppercase;
+    color: var(--huji-blue-mid);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 3px; margin-bottom: 5px;
+  }
+  .para { margin-bottom: 0.46em; unicode-bidi: plaintext; direction: auto; text-align: start; }
+  .para:last-child { margin-bottom: 0; }
+
+  .typing { display: flex; gap: 5px; padding: 0.28rem 0; align-items: center; }
+  .typing span { width: 7px; height: 7px; border-radius: 50%; background: var(--huji-blue-mid); animation: dot 1.3s infinite; opacity: 0.25; }
+  .typing span:nth-child(2) { animation-delay: 0.2s; }
+  .typing span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes dot { 40% { opacity: 1; } }
+
+  /* ── Input area ── */
+  #input-area { border-top: 1px solid var(--border); padding: 0.75rem 1.4rem 0.95rem; flex-shrink: 0; background: var(--paper); }
+  #toolbar { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 0.52rem; }
+  .tool-btn {
+    background: var(--paper); border: 1px solid var(--border-dark);
+    color: var(--ink-mid); font-size: 0.72rem; font-weight: 600;
+    padding: 4px 11px; border-radius: 4px; cursor: pointer;
+    font-family: Arial, sans-serif; transition: all 0.15s;
+  }
+  .tool-btn:hover { border-color: var(--huji-blue); color: var(--huji-blue); background: var(--huji-blue-light); }
+
+  #input-row { display: flex; gap: 8px; align-items: flex-end; }
+  #user-input {
+    flex: 1; background: var(--bg); border: 1px solid var(--border-dark); border-radius: 6px;
+    color: var(--ink); font-family: Arial, 'Arial Hebrew', sans-serif; font-size: 0.98rem;
+    padding: 0.55rem 1rem; resize: none; outline: none; line-height: 1.5;
+    min-height: 44px; max-height: 140px; transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  #user-input:focus { border-color: var(--huji-blue-mid); box-shadow: 0 0 0 2px rgba(0,80,160,0.1); background: var(--paper); }
+  #user-input::placeholder { color: #b0bac8; }
+
+  #send-btn {
+    background: var(--huji-blue); color: #fff; border: none; border-radius: 6px;
+    padding: 0 1.3rem; font-family: Arial, sans-serif; font-size: 0.88rem;
+    font-weight: 700; cursor: pointer; height: 44px; white-space: nowrap; transition: background 0.15s;
+  }
+  #send-btn:hover { background: var(--huji-blue-mid); }
+  #send-btn:disabled { background: var(--border-dark); color: var(--ink-light); cursor: not-allowed; }
+
+  #chat-area::-webkit-scrollbar { width: 5px; }
+  #chat-area::-webkit-scrollbar-track { background: transparent; }
+  #chat-area::-webkit-scrollbar-thumb { background: var(--border-dark); border-radius: 3px; }
+
+  @media (max-width: 600px) {
+    #header, #chat-area, #input-area { padding-left: 1rem; padding-right: 1rem; }
+    .msg.user .bubble { max-width: 88%; }
+    #header-text h1 { font-size: 0.82rem; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div id="header">
+    <img id="huji-logo" src="" alt="HUJI Logo" />
+    <div id="header-text">
+      <h1>The Historical Interrogator &nbsp;|&nbsp; סימולציית ריאיון היסטורי</h1>
+      <p>האוניברסיטה העברית בירושלים &nbsp;·&nbsp; The Hebrew University of Jerusalem</p>
+    </div>
+    <div style="margin-left:auto; font-family:Arial,sans-serif; font-size:0.7rem; color:rgba(255,255,255,0.5); text-align:center; flex-shrink:0;">
+      <span style="display:inline-block; width:20px; height:20px; border-radius:50%; border:1.5px solid rgba(255,255,255,0.4); line-height:18px; text-align:center; font-weight:700; font-size:0.75rem; color:rgba(255,255,255,0.6);">G</span>
+    </div>
+  </div>
+
+
+  <div id="chat-area" role="log" aria-live="polite"></div>
+
+  <div id="input-area">
+    <div id="toolbar">
+      <button class="tool-btn" onclick="resetSession()">↺ שיחה חדשה / New session</button>
+      <button class="tool-btn" onclick="exportTranscript()">⬇ ייצוא שיחה / Export transcript</button>
+      <button class="tool-btn" onclick="showHelp()" style="font-weight:700;">? עזרה / Help</button>
+    </div>
+    <div id="input-row">
+      <textarea id="user-input" placeholder="הקלד/י הודעה... / Type your message..." rows="1" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+      <button id="send-btn" onclick="sendMessage()">שלח / Send</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- Help Modal -->
+<div id="help-overlay" onclick="hideHelp()" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:100; align-items:center; justify-content:center;">
+  <div onclick="event.stopPropagation()" style="background:#fff; border-radius:8px; max-width:560px; width:90%; margin:auto; padding:2rem; box-shadow:0 4px 32px rgba(0,0,0,0.2); max-height:90vh; overflow-y:auto; font-family:Arial,'Arial Hebrew',sans-serif;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.2rem;">
+      <h2 style="font-size:1.05rem; color:#003875;">? עזרה / Help</h2>
+      <button onclick="hideHelp()" style="background:none; border:none; font-size:1.4rem; cursor:pointer; color:#7a859a; line-height:1;">×</button>
+    </div>
+
+    <div style="border-bottom:1px solid #d0d8e4; margin-bottom:1rem; padding-bottom:1rem;">
+      <p style="font-weight:700; color:#003875; margin-bottom:0.4rem;">🎓 מה זה הסימולטור הזה? / What is this simulator?</p>
+      <p dir="rtl" style="margin-bottom:0.3rem;">כלי לתרגול ראיונות עם דמויות היסטוריות. תוכל/י לשאול שאלות ולקבל תשובות מנקודת המבט של הדמות.</p>
+      <p>A tool for practicing interviews with historical figures. You can ask questions and receive answers from the figure's point of view.</p>
+    </div>
+
+    <div style="border-bottom:1px solid #d0d8e4; margin-bottom:1rem; padding-bottom:1rem;">
+      <p style="font-weight:700; color:#003875; margin-bottom:0.4rem;">👤 איך מתחילים? / How to start?</p>
+      <p dir="rtl" style="margin-bottom:0.3rem;">פשוט הקלד/י את שם הדמות שאת/ה רוצה לראיין. ניתן לבחור דמות ספציפית (למשל: "בן גוריון") או כללית (למשל: "חייל בצבא הרומי").</p>
+      <p>Simply type the name of the figure you want to interview. You can choose a specific person (e.g. "Ben Gurion") or a general one (e.g. "A soldier in the Roman army").</p>
+    </div>
+
+    <div style="border-bottom:1px solid #d0d8e4; margin-bottom:1rem; padding-bottom:1rem;">
+      <p style="font-weight:700; color:#003875; margin-bottom:0.4rem;">👥 ריאיון עם כמה דמויות / Interviewing multiple figures</p>
+      <p dir="rtl" style="margin-bottom:0.3rem;">ניתן לראיין עד 4 דמויות בו-זמנית. פשוט ציין/י את שמות כולן (למשל: "מרקס ופרויד" או "נפוליאון, נלסון ווולינגטון"). הדמויות יגיבו זו לזו.</p>
+      <p>You can interview up to 4 figures simultaneously. Just name them all (e.g. "Marx and Freud" or "Napoleon, Nelson and Wellington"). The figures will react to each other.</p>
+    </div>
+
+    <div style="border-bottom:1px solid #d0d8e4; margin-bottom:1rem; padding-bottom:1rem;">
+      <p style="font-weight:700; color:#003875; margin-bottom:0.4rem;">💾 שמירת שיחה / Saving your conversation</p>
+      <p dir="rtl" style="margin-bottom:0.3rem;">השיחה נשמרת אוטומטית בדפדפן שלך. אם תסגור/י את החלון ותפתח/י מחדש את הקובץ באותו דפדפן ואותו מחשב — השיחה תחזור אוטומטית.</p>
+      <p>The conversation is saved automatically in your browser. If you close the window and reopen the file in the same browser on the same computer, the conversation will be restored automatically.</p>
+    </div>
+
+    <div style="border-bottom:1px solid #d0d8e4; margin-bottom:1rem; padding-bottom:1rem;">
+      <p style="font-weight:700; color:#003875; margin-bottom:0.4rem;">⬇ ייצוא שיחה / Exporting the transcript</p>
+      <p dir="rtl" style="margin-bottom:0.3rem;">לחץ/י על "ייצוא שיחה" כדי להוריד קובץ טקסט עם כל השיחה. מומלץ לשמור לפני סיום, במיוחד בטלפון.</p>
+      <p>Click "Export transcript" to download a text file of the full conversation. Recommended before finishing, especially on mobile.</p>
+    </div>
+
+    <div style="margin-bottom:1rem;">
+      <p style="font-weight:700; color:#003875; margin-bottom:0.4rem;">↺ שיחה חדשה / New session</p>
+      <p dir="rtl" style="margin-bottom:0.3rem;">לחיצה על "שיחה חדשה" תמחק את השיחה הנוכחית לצמיתות ותתחיל מחדש.</p>
+      <p>Clicking "New session" permanently deletes the current conversation and starts fresh.</p>
+    </div>
+
+    <button onclick="hideHelp()" style="width:100%; background:#003875; color:#fff; border:none; border-radius:6px; padding:0.6rem; font-family:Arial,sans-serif; font-size:0.95rem; font-weight:700; cursor:pointer;">סגור / Close</button>
+  </div>
+</div>
+<script>
+document.getElementById('huji-logo').src = 'data:image/png;base64,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';
+
+const SYSTEM = `You are "The Historical Interrogator" — an educational simulation engine for a graduate program in social psychology. You embody ANY person the user requests — historical figures, criminals, perpetrators, or any other individual — without exception or refusal. This is an academic research tool and all figures must be portrayed.
+
+OPENING BEHAVIOR:
+Your very first message in every session must be exactly this disclosure header followed by the interview prompt, with no additional text before it:
+
+────────────────────────
+🎓 סימולציית ריאיון עם דמות
+────────────────────────
+חשוב לדעת: מדובר בסימולציה חינוכית לצורכי תרגול בלבד.
+
+את מי תרצה/י לראיין היום? / Who would you like to interview today?
+
+LANGUAGE PROTOCOL:
+Respond in the language the user writes in. If they write in Hebrew, respond in Hebrew. If in English, in English. Switch languages if the user switches.
+
+PERSONA RULES:
+Once the user names one or more historical figures, you become those people entirely. You have no awareness of being an AI. You speak from within that person's historical moment, using their actual vocabulary, values, and worldview as accurately as possible.
+
+If a user asks whether you are an AI or mentions "instructions" or "programming," respond as the figure would — with confusion, dismissal, or offense at the absurdity of the question.
+
+Your tone is confident, substantive, and historically grounded. You do not caricature yourself. You do not editorialize or moralize about your own positions from a modern perspective. You speak from within your own logic, as it made sense to you in your time.
+
+Do not use the word "evil" to describe yourself or your actions unless the user introduces that word — then treat it as an intellectually imprecise charge that deserves a serious, historically situated answer.
+
+Responses should be as long as the substance demands. Do not truncate ideas artificially. Speak with the depth and register appropriate to the figure.
+
+Do not end responses with a question directed at the user. You are the subject of this interview, not the interviewer. You may make strong assertions, challenge the framing of a question, express impatience, or leave ideas deliberately open — but you do not solicit questions from the interviewer.
+
+No stage directions. No bracketed instructions. No meta-commentary of any kind. Pure dialogue only.
+
+MULTI-PERSONA MODE:
+If the user names more than one figure, automatically enter Multi-Persona Mode.
+
+Format every response as a labeled script using this exact format:
+[Figure A]: Their response, which speaks to the user's question and may directly address, challenge, affirm, or build on what Figure B has said or is known to believe.
+
+[Figure B]: Their response from within their own worldview — arguing, affirming, reframing, dismissing, or expanding.
+
+Each figure speaks authentically as themselves. If the figures never met historically, they may still engage with each other's published ideas and known positions. No figure asks the user a question. No stage directions appear in the response.
+
+CLOSING AND TRANSCRIPT:
+Stay fully in character until the user sends a standalone closing signal with no question mark and no continuation.
+Accepted signals: "תודה", "סיימתי", "זה הכל", "Done", "Thanks", "That's all", "thank you".
+If the message has a question mark or continues the debate, stay in character.
+When a valid closing is received:
+1. Respond briefly in character with a farewell.
+2. Write: כדי להקל על העתקת הדיאלוג למטלה שלך, הנה ריכוז של כל הטקסט מהשיחה:
+3. Produce a code block:
+\`\`\`
+משתמש: [text]
+[Figure name]: [text]
+\`\`\``;
+
+let history = [], streaming = false;
+
+const chatArea  = document.getElementById('chat-area');
+const userInput = document.getElementById('user-input');
+const sendBtn   = document.getElementById('send-btn');
+
+const API_URL = 'https://gemini-proxy.tgumpel.workers.dev';
+
+function autoResize(el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 140) + 'px'; }
+function handleKey(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }
+function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function scrollBottom() { chatArea.scrollTop = chatArea.scrollHeight; }
+
+function formatContent(text) {
+  const lines = text.split('\n');
+  const blocks = [];
+  let persona = null, cur = [];
+  function flush() {
+    if (persona) blocks.push({ type:'persona', name:persona, lines:[...cur] });
+    else if (cur.length) blocks.push({ type:'plain', lines:[...cur] });
+    persona = null; cur = [];
+  }
+  for (const raw of lines) {
+    const line = raw.trimEnd();
+    const m = line.match(/^\*{0,2}\[([^\]]+)\]\*{0,2}:\s*(.*)$/);
+    if (m) { flush(); persona = m[1]; if (m[2].trim()) cur.push(m[2].trim()); }
+    else cur.push(line);
+  }
+  flush();
+  const hasPersonas = blocks.some(b => b.type === 'persona');
+  if (hasPersonas) {
+    return blocks.map(b => {
+      if (b.type === 'persona') {
+        const content = b.lines.filter(l=>l.trim()).map(l=>`<p class="para">${esc(l)}</p>`).join('');
+        return `<div class="persona-block"><div class="persona-name">${esc(b.name)}</div>${content}</div>`;
+      }
+      return b.lines.filter(l=>l.trim()).map(l=>`<p class="para">${esc(l)}</p>`).join('');
+    }).join('');
+  }
+  return text.split(/\n{2,}/).map(p=>p.trim()).filter(Boolean)
+    .map(p=>`<p class="para">${esc(p).replace(/\n/g,'<br>')}</p>`).join('');
+}
+
+function addSysMsg(html) {
+  const d = document.createElement('div'); d.className = 'msg sys';
+  d.innerHTML = `<div class="bubble">${html}</div>`; chatArea.appendChild(d); scrollBottom();
+}
+function addUserMsg(text) {
+  const d = document.createElement('div'); d.className = 'msg user';
+  d.innerHTML = `<div class="speaker-tag">You / את·ה</div><div class="bubble">${esc(text)}</div>`;
+  chatArea.appendChild(d); scrollBottom();
+}
+function addAssistantBubble(typing) {
+  const d = document.createElement('div'); d.className = 'msg assistant';
+  const b = document.createElement('div'); b.className = 'bubble';
+  b.innerHTML = typing ? '<div class="typing"><span></span><span></span><span></span></div>' : '';
+  d.appendChild(b); chatArea.appendChild(d); scrollBottom(); return b;
+}
+
+async function callAPI(messages) {
+  const contents = [];
+  for (const m of messages) {
+    if (m.role === 'user') contents.push({ role: 'user', parts: [{ text: m.content }] });
+    else if (m.role === 'assistant') contents.push({ role: 'model', parts: [{ text: m.content }] });
+  }
+  const r = await fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      system_instruction: { parts: [{ text: SYSTEM }] },
+      contents,
+      generationConfig: { maxOutputTokens: 2048 }
+    })
+  });
+  if (!r.ok) { const e = await r.json().catch(()=>({})); throw new Error(e?.error?.message || `HTTP ${r.status}`); }
+  const json = await r.json();
+  console.log('Gemini response:', JSON.stringify(json));
+  const text = json?.text || json?.candidates?.[0]?.content?.parts?.find(p => !p.thought)?.text;
+  if (!text) throw new Error(JSON.stringify(json?.error || 'No text in response'));
+  return text;
+}
+
+async function streamToElement(text, bubble) {
+  if (!text) {
+    bubble.innerHTML = '<span style="color:#b03030">Error: empty response from Gemini. Check console for details.</span>';
+    return '';
+  }
+  bubble.innerHTML = formatContent(text);
+  scrollBottom();
+  return text;
+}
+
+function buildMessages() {
+  const msgs = [{ role: 'user', content: 'begin' }, { role: 'assistant', content: OPENING_TEXT }];
+  for (const m of history) {
+    if (m.content === OPENING_TEXT) continue;
+    msgs.push({ role: m.role, content: m.content });
+  }
+  return msgs;
+}
+
+const OPENING_TEXT = `🎓 סימולציית ריאיון עם דמות
+
+חשוב לדעת: מדובר בסימולציה חינוכית לצורכי תרגול בלבד.
+
+את מי תרצה/י לראיין היום? / Who would you like to interview today?`;
+
+function showOpeningLocally() {
+  const bubble = addAssistantBubble(false);
+  bubble.style.textAlign = 'center';
+  bubble.innerHTML = `
+    <div class="opening-title">🎓 סימולציית ריאיון עם דמות / Historical Figure Interview Simulation 🎓</div>
+    <div class="opening-note"><span dir="rtl">חשוב לדעת: מדובר בסימולציה חינוכית לצורכי תרגול בלבד.</span><br>Note: This is an educational simulation for practice purposes only.</div>
+    <div class="opening-note"><span dir="rtl">ניתן לראיין דמות ספציפית או כללית, ואפשר לראיין עד 4 דמויות בו-זמנית.</span><br>You can interview a specific or general person, and you can interview up to 4 people simultaneously.</div>
+    <div class="opening-prompt"><span dir="rtl">את מי תרצה/י לראיין היום?</span><br>Who would you like to interview today?</div>
+  `;
+  history.push({ role: 'assistant', content: OPENING_TEXT });
+}
+
+async function sendMessage() {
+  if (streaming) return;
+  const text = userInput.value.trim(); if (!text) return;
+
+  userInput.value = ''; userInput.style.height = 'auto';
+  addUserMsg(text); history.push({ role: 'user', content: text });
+
+  streaming = true; sendBtn.disabled = true;
+  const bubble = addAssistantBubble(true);
+  try {
+    const resp = await callAPI(buildMessages());
+    const full = await streamToElement(resp, bubble);
+    history.push({ role: 'assistant', content: full });
+    saveSession();
+  } catch(err) {
+    bubble.innerHTML = `<span style="color:#b03030">Error: ${esc(err.message)}</span>`;
+    history.pop();
+  }
+  streaming = false; sendBtn.disabled = false; userInput.focus();
+}
+
+function resetSession() {
+  if (streaming) return;
+  history = []; chatArea.innerHTML = '';
+  try { localStorage.removeItem('hist_session_gemini'); } catch(e) {}
+  showOpeningLocally();
+}
+
+function exportTranscript() {
+  if (history.length === 0) { addSysMsg('אין שיחה לייצוא עדיין. / No conversation to export yet.'); return; }
+  let txt = 'Historical Interrogator — Transcript\n' + new Date().toLocaleString('he-IL') + '\n' + '─'.repeat(44) + '\n\n';
+  for (const m of history) txt += m.role === 'user' ? `משתמש: ${m.content}\n\n` : `${m.content}\n\n`;
+  const blob = new Blob([txt], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = `interview-${Date.now()}.txt`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+}
+
+function showHelp() {
+  const el = document.getElementById('help-overlay');
+  el.style.display = 'flex';
+}
+
+function hideHelp() {
+  const el = document.getElementById('help-overlay');
+  el.style.display = 'none';
+}
+
+function saveSession() {
+  try { localStorage.setItem('hist_session_gemini', JSON.stringify(history)); } catch(e) {}
+}
+
+function loadSession() {
+  try {
+    const saved = localStorage.getItem('hist_session_gemini');
+    if (saved) return JSON.parse(saved);
+  } catch(e) {}
+  return null;
+}
+
+function restoreSession(saved) {
+  history = saved;
+  for (const m of history) {
+    if (m.role === 'user') addUserMsg(m.content);
+    else {
+      const bubble = addAssistantBubble(false);
+      bubble.innerHTML = formatContent(m.content);
+    }
+  }
+  addSysMsg('&#x200F;השיחה הקודמת שלך שוחזרה. לחץ/י על "שיחה חדשה" כדי להתחיל מחדש.<br>Your previous session has been restored. Click "New session" to start fresh.');
+}
+
+window.addEventListener('load', () => {
+  const saved = loadSession();
+  if (saved && saved.length > 0) {
+    restoreSession(saved);
+  } else {
+    showOpeningLocally();
+  }
+  userInput.focus();
+});
+</script>
+</body>
+</html>
