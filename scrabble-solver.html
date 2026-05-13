@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scrabble Solver</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:sans-serif;background:#1a1a2e;color:#eee;padding:16px;min-height:100vh}
+h1{text-align:center;margin-bottom:16px;font-size:22px;color:#f5e642}
+#app{max-width:1200px;margin:0 auto;display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start}
+#left-panel{flex:0 0 auto}
+#right-panel{flex:1;min-width:280px}
+
+#board{display:grid;grid-template-columns:repeat(15,1fr);gap:2px;width:510px}
+.cell{width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:bold;cursor:pointer;border-radius:2px;background:#c8b89a;color:#333;text-transform:uppercase;user-select:none;position:relative;transition:outline 0.05s}
+.cell.tw{background:#c0392b;color:#fff}
+.cell.dw{background:#e67e22;color:#fff}
+.cell.tl{background:#2471a3;color:#fff}
+.cell.dl{background:#5dade2;color:#333}
+.cell.filled{background:#f5e642!important;color:#222!important;font-size:15px!important;border:1px solid #bbb}
+.cell.selected{outline:3px solid #00ff88;z-index:2}
+.cell.new-tile{background:#a8d8a8!important;color:#222!important;font-size:15px!important;border:1px solid #6a6}
+.lv{position:absolute;bottom:1px;right:2px;font-size:6px;opacity:.7}
+
+#controls{margin-top:12px;display:flex;flex-direction:column;gap:8px}
+.row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+label{font-size:12px;color:#aaa;min-width:70px}
+input[type=text]{background:#2d2d44;border:1px solid #555;color:#fff;padding:6px 10px;border-radius:4px;font-size:16px;text-transform:uppercase;letter-spacing:2px;width:180px}
+input[type=file]{color:#aaa;font-size:12px}
+.btn{padding:8px 16px;border:none;border-radius:4px;cursor:pointer;font-weight:bold;font-size:13px}
+#solve-btn{background:#00b4d8;color:#fff;font-size:14px;padding:10px 20px}
+#solve-btn:disabled{background:#444;cursor:not-allowed}
+#solve-btn:hover:not(:disabled){background:#0096c7}
+.btn-sm{background:#333;color:#ccc}
+.btn-sm:hover{background:#444}
+#wl-status{font-size:11px;color:#777;margin-top:2px}
+#dir-indicator{font-size:12px;color:#00ff88;font-weight:bold}
+#solving{display:none;color:#00ff88;font-style:italic;font-size:13px}
+
+#rack-display{display:flex;gap:4px;margin-top:4px}
+.rt{width:34px;height:34px;background:#f5e642;color:#222;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:bold;border-radius:4px;border:2px solid #ccc;position:relative}
+.rt.blank{background:#ddd;color:#888;font-size:12px}
+.rt .rv{position:absolute;bottom:1px;right:2px;font-size:7px;color:#666}
+
+#results-hdr{font-weight:bold;margin-bottom:8px;font-size:15px}
+#results{max-height:620px;overflow-y:auto}
+.ri{display:flex;align-items:center;gap:10px;padding:8px 12px;background:#2d2d44;border-radius:4px;margin-bottom:5px;cursor:pointer;transition:background .1s;border-left:3px solid transparent}
+.ri:hover{background:#3a3a55}
+.ri.active{background:#1a3a2a;border-left-color:#00ff88}
+.rw{font-size:18px;font-weight:bold;color:#f5e642;letter-spacing:2px}
+.rp{font-size:11px;color:#888;margin-top:2px}
+.rs{font-size:20px;font-weight:bold;color:#00b4d8;margin-left:auto}
+.rb{font-size:10px;color:#f39c12;margin-left:4px}
+
+#hint{font-size:11px;color:#555;margin-top:8px;line-height:1.5}
+</style>
+</head>
+<body>
+<h1>Scrabble Solver</h1>
+<div id="app">
+  <div id="left-panel">
+    <div id="board"></div>
+    <div id="controls">
+      <div class="row">
+        <label>Rack:</label>
+        <input type="text" id="rack" maxlength="7" placeholder="AEILNRT" autocomplete="off" autocorrect="off" spellcheck="false">
+        <span id="dir-indicator">→ H</span>
+      </div>
+      <div id="rack-display"></div>
+      <div class="row">
+        <button class="btn" id="solve-btn" onclick="solve()">Find Best Moves</button>
+        <button class="btn btn-sm" onclick="clearBoard()">Clear Board</button>
+        <button class="btn btn-sm" onclick="clearHL()">Clear Highlight</button>
+      </div>
+      <div class="row">
+        <label>Dictionary:</label>
+        <input type="file" id="wf" accept=".txt" onchange="loadFile(this)">
+      </div>
+      <div id="wl-status">Built-in: 0 words loading…</div>
+      <div id="solving">Solving…</div>
+      <div id="hint">Click a cell then type to place tiles on the board.<br>Arrow keys move cursor · Backspace clears · Tab toggles H/V direction.</div>
+    </div>
+  </div>
+  <div id="right-panel">
+    <div id="results-hdr">Best Moves</div>
+    <div id="results"><div style="color:#555;font-size:13px">Enter rack tiles and press Find Best Moves</div></div>
+  </div>
+</div>
+<script>
+const BS=15,CEN=7;
+
+const BM=(()=>{
+  const m={};
+  [[0,0],[0,7],[0,14],[7,0],[7,14],[14,0],[14,7],[14,14]].forEach(([r,c])=>m[r*15+c]='TW');
+  [[1,1],[2,2],[3,3],[4,4],[10,10],[11,11],[12,12],[13,13],
+   [1,13],[2,12],[3,11],[4,10],[10,4],[11,3],[12,2],[13,1],[7,7]].forEach(([r,c])=>m[r*15+c]='DW');
+  [[1,5],[1,9],[5,1],[5,5],[5,9],[5,13],[9,1],[9,5],[9,9],[9,13],[13,5],[13,9]].forEach(([r,c])=>m[r*15+c]='TL');
+  [[0,3],[0,11],[2,6],[2,8],[3,0],[3,7],[3,14],[6,2],[6,6],[6,8],[6,12],
+   [7,3],[7,11],[8,2],[8,6],[8,8],[8,12],[11,0],[11,7],[11,14],[12,6],[12,8],[14,3],[14,11]].forEach(([r,c])=>m[r*15+c]='DL');
+  return m;
+})();
+
+const LV={A:1,B:3,C:3,D:2,E:1,F:4,G:2,H:4,I:1,J:8,K:5,L:1,M:3,N:1,O:1,P:3,Q:10,R:1,S:1,T:1,U:1,V:4,W:4,X:8,Y:4,Z:10};
+const BL={TW:'tw',DW:'dw',TL:'tl',DL:'dl'};
+const BN={TW:'3W',DW:'2W',TL:'3L',DL:'2L'};
+
+let board=Array(BS).fill(null).map(()=>Array(BS).fill(null));
+let wByLen={};
+let sel=null,inputDir='H';
+let lastResults=[];
+
+// ── WORD LIST ──────────────────────────────────────────────────────────────
+const BUILTIN=`AA AB AD AE AG AH AI AL AM AN AR AS AT AW AX AY BA BE BI BO BY DA DE DO ED EF EH EL EM EN ER ES ET EX FA GI GO HA HE HI HO ID IF IN IS IT JO KA KI LA LI LO MA ME MI MO MU MY NA NE NO NU OD OE OF OH OI OM ON OP OR OS OW OX OY PA PE PI QI RE SH SI SO TA TE TI TO UH UM UN UP UR US UT WE WO XI XU YA YE YO ZA
+AAH AAL AAS ABA ABO ABS ABY ACE ACT ADD ADO ADS ADZ AGE AGO AGS AHA AHI AHS AID AIM AIR AIS AIT ALA ALB ALE ALL ALP ALS ALT AMI AMP AMU ANA ANE ANI ANT ANY APE APT ARC ARE ARK ARM ART ASH ASK ASP ATE AUK AVE AWE AWL AWN AXE AYE AZO BAA BAD BAG BAH BAM BAN BAP BAR BAS BAT BAY BED BEL BEN BES BET BIB BIG BIN BIO BIS BIT BOA BOB BOD BOG BOO BOP BOT BOW BOX BOY BRA BRO BUB BUD BUG BUM BUN BUR BUS BUT BUY CAB CAD CAM CAN CAP CAR CAT CAW CEE CEL CEP CHI CIG COB COD COG COL CON COO COP COS COT COW COX COY CRU CUB CUD CUE CUR CUT DAB DAD DAH DAL DAM DAP DAW DAY DEB DEL DEN DEW DIG DIM DIN DIP DIS DIT DOC DOE DOG DOM DON DOR DOS DOT DOW DRY DUB DUE DUG DUN DUO DUP EAR EAT EEL EFF EGG EGO ELF ELK ELM ELS EMU END ENG EON ERA ERE ERG ERN ERR ETA EWE EYE FAD FAG FAN FAR FAT FAX FAY FED FEN FET FEW FEY FEZ FIB FIG FIN FIR FIT FIX FLU FLY FOB FOE FOG FOP FOX FRO FRY FUG FUN FUR GAB GAG GAL GAM GAP GAR GAS GAY GEL GEM GET GIB GIG GIN GNU GOB GOD GOP GOT GOY GUL GUM GUN GUT GUY HAE HAG HAM HAP HAS HAT HAW HAY HEM HEN HEP HER HES HET HEW HEX HEY HID HIM HIN HIP HIT HOB HOD HOE HOG HOM HOP HOT HOW HUB HUG HUM ICE IDS ILL IMP INK INN ION IRE ISM ITS JAB JAG JAM JAR JAW JAY JEE JET JIB JIG JIN JOB JOE JOG JOT JOW JOY JUG JUS JUT KAB KAF KAS KAT KAY KEF KEG KEN KID KIN KIT LAB LAD LAG LAM LAP LAR LAT LAV LAW LAX LAY LEA LED LEE LEG LET LEU LID LIE LIN LIT LOB LOG LOO LOP LOT LOW LUG MAD MAE MAG MAP MAR MAS MAT MAW MAY MEL MEM MEN MET MEW MIG MIL MIM MIR MIS MIX MOB MOD MOM MOP MOT MOW MUD MUG MUM NAB NAG NAP NAW NAY NEB NIT NOB NOD NOT NOW NUB NUN NUT OAF OAK OAR OAT OCA ODD ODE OFF OFT OHM OIL OKA OLD OLE OMS ONE OPE OPS OPT ORB ORE ORS ORT OUD OUR OUT OWE OWL OWN PAD PAH PAL PAM PAP PAR PAS PAT PAW PAX PAY PEA PEC PED PEE PEG PER PES PET PEW PHI PIE PIG PIN PIP PIT PLY POD POP POT POW POX PRY PUB PUG PUN PUP PUS PUT RAD RAG RAM RAP RAS RAT RAW RAY REB REC RED REF REI REP RES RET REV REX RHO RIB RID RIG RIM RIP ROB ROC ROD ROE ROM ROT ROW RUB RUG RUM RUN RUT SAC SAD SAG SAP SAT SAW SAX SAY SEA SEC SEE SET SEW SKI SKY SLY SOB SOD SON SOP SOT SOW SOY SPA SPY STY SUB SUM SUN SUP TAB TAD TAN TAP TAR TAT TAW TAX TEA TED TEE TEN TIE TIN TIP TOD TOE TON TOO TOP TOT TOW TOY TUB TUG TUN TUP TUX TWO UDO UGH UKE ULU UNS UPO UPS URN USE UTE UTS VAN VAR VAS VAT VAW VEE VEX VIA VIE VOW WAD WAX WEB WED WEN WET WHO WHY WIG WIN WIT WOE WOK WON WOO YAK YAM YAP YAW YEA YES YEW YOD ZAG ZAP ZAX ZED ZIG ZIP ZIT ZOO
+ABLE ACED ACES ACID ACRE ACTS AGED AIDE AIDS AIMS AIRS AKIN ALOE ALSO ALTO ALUM AMOK ANTE ANTI ANTS APEX ARID ARMY AUNT AVID AVOW AWED AWRY BABY BACK BAIL BAIT BALE BALK BALL BAND BANE BANG BARE BARK BARN BASE BASH BASS BATH BAUD BAWL BEAD BEAM BEAN BEAR BEAT BEAU BEEF BEEN BEER BEET BELL BELT BEND BENT BEST BILL BIND BIRD BITE BLOB BLOC BLOT BLOW BLUE BLUR BOAT BODY BOLD BOLT BOND BONE BOOK BOOM BORE BOTH BOUT BOWL BROW BULB BULL BUMP BUNK BUNT BURN BURP BUST BUSY CAGE CAKE CALL CALM CANE CANT CAPE CARD CARE CART CASE CASH CAST CAVE CELL CENT CHIP CITY CLAM CLAP CLAW CLAY CLUE COAL COAT COIL COIN COLD COME CONE COOL CORD CORE CORK CORN COST COUP COVE COWL CRAM CUBE CUFF CULT CURE CURL CURT CUTE DAMP DARE DARK DART DATA DATE DAWN DEAD DEAF DEAN DEBT DEED DEEM DEEP DEER DENY DESK DIAL DICE DIET DIKE DILL DIME DINE DIRE DIRT DISC DISH DISK DOVE DOWN DRIP DROP DRUM DUEL DUNE DUNK DUSK DUST DUTY EACH EARL EARN EASE EAST EASY EDGE ENVY EPIC EVEN EVIL EXAM FACE FACT FADE FAIL FAIR FALL FAME FARE FARM FAST FATE FAWN FAZE FEAR FEAT FEED FEEL FEET FELL FELT FERN FILE FILL FILM FIND FINE FIRE FIRM FISH FIST FLAG FLAW FLEA FLEW FLEX FLIP FLIT FLOG FLOP FLOW FOAM FOIL FOLK FOND FONT FOOL FOOT FORD FORE FORK FORM FORT FOUL FOUR FRAY FREE FROM FUEL FULL FUND FUSE FUZZ GAIN GALE GALL GASH GATE GAVE GAZE GEAR GENE GENT GIFT GILD GILT GIST GIVE GLAD GLEE GLEN GLIB GLOW GLUE GLUM GOAD GOAT GOES GOLF GONE GOOD GORE GOWN GRAB GRAM GRAY GREW GRID GRIN GRIP GRIT GROG GROW GRUB GULF GULL GULP GUST GUTS HACK HAIL HALE HALF HALL HALT HANK HARD HARE HARM HARP HASH HATE HAUL HAVE HAZE HEAD HEAL HEAP HEAT HEEL HELD HELP HEMP HERB HERD HIDE HIGH HIKE HILL HINT HISS HIVE HOAX HOCK HOLD HOLE HOME HONE HOOD HOOK HOPE HORN HOST HOUR HOVE HOWL HUMP HUNG HUNT HURL HURT HYMN IDEA IDLE IDOL INCH INTO IRIS IRON ISLE ITCH JACK JADE JAIL JEST JILT JIVE JOLT JUNK JURY JUST KEEN KEEP KELP KICK KILL KIND KING KINK KNIT KNOB KNOT KNOW LACE LAID LAKE LAME LAMP LAND LANE LARD LARK LASH LAST LATE LAUD LAWN LAZY LEAD LEAF LEAK LEAN LEAP LEND LENS LENT LESS LEST LEVY LICK LIED LIEU LIFE LIFT LIKE LILY LIME LIMP LINE LINK LION LIST LIVE LOAD LOAN LOBE LOCK LOFT LOIN LONG LOOK LORE MACE MADE MAIL MALT MANE MANY MARE MARK MAST MATE MAZE MEAD MEAL MEAN MEAT MELD MELT MEMO MEND MESH MILD MILL MIME MINE MINT MIRE MISS MIST MOAT MOCK MODE MOLD MOLE MONK MOON MOOR MOOT MOPE MORN MOST MOTH MOVE MUCH MULE MULL MUSE MUSK MUTE NAIL NAPE NAVY NEAR NEAT NECK NEED NEST NICE NICK NINE NOEL NOOK NORM NOTE NOUN NUDE NUMB OATH ODDS ODOR OGLE ONCE ONLY OPAL OPEN ORAL OURS OVAL OVEN OVER OWED PACE PACK PAGE PALE PALM PANE PANG PARK PART PAVE PAWN PEAK PEAL PEAR PEAT PECK PEEL PEEP PEER PELT PERK PEST PICK PILE PILL PINE PING PINK PIPE PLOD PLOP PLOT PLOW PLOY PLUM PLUS POET POKE POLE POLL POND PONY PORK POSE POST POUR POUT PRAY PREP PROD PROP PULP PUMP PUNY PURE PURR PUSH PUTT RACE RACK RAGE RAIL RAIN RAKE RAMP RANG RANK RANT RAPT RAVE RAZZ READ REAL REAP REEL REEF REIN REND RENT RISE RISK RITE ROAD ROAM ROAR ROBE RODE ROLE ROLL ROOK ROOM ROOT ROPE ROUT RUBY RUDE RUIN RULE RUSE RUSH RUST SACK SAFE SAGE SAKE SALE SALT SAME SAND SANE SANG SASH SAVE SEAL SEAM SEAR SEAT SECT SEED SEEK SEEM SEEP SELF SELL SEND SENT SERF SHED SHIN SHOE SHOT SHOW SHUT SICK SIGH SILK SILL SING SINK SIRE SLAB SLAG SLAP SLED SLID SLIM SLIP SLIT SLOB SLOE SLOP SLOT SLOW SLUG SLUM SLUR SNAG SNAP SNIT SNOB SNOW SOAK SOAR SOCK SOIL SOLE SOME SONG SORT SOUL SOUP SOUR SPAN SPAR SPIN SPIT SPOT SPUD SPUR STAB STAG STAR STAY STEM STEP STEW STIR STOP STUB STUD STUN SUCH SULK SUMP SUNG SUNK SURF TACK TAME TANG TANK TAPE TART TAUT TEAK TEAL TEAM TEAR TEEM TELL TENT TERM THAT THEN THEY THIN THIS THOU THUD THUG TIDE TIER TILL TILT TIME TIRE TOAD TOED TOLD TOLL TOMB TOME TORE TOSS TOUR TOWN TREE TREK TRIM TRIP TROD TROT TRUE TUCK TUFT TUNA TURF TUSK TWIG TWIN TWIT UGLY UNDO UNIT UPON USED VEIL VEIN VERY VEST VIEW VILE VINE VISE VOID VOLT VOTE VOWS WADE WAFT WAGE WAKE WALK WALL WANT WARD WARM WARP WART WARY WAVE WEAK WEAL WEAN WEED WEEK WELD WELL WELT WENT WERE WICK WIFE WILE WILL WILT WIMP WINE WING WINK WISE WISH WISP WITS WOLF WOOD WOOL WORD WORE WORK WORM WORN WORT WRAP WRIT YARD YAWN YELL YORE YOUR ZEAL ZEST ZINC ZONE ZOOM
+ABACK ABATE ABBEY ABHOR ABIDE ABUSE ABYSS ACHED ACORN ACRID ACTED ACUTE ADAGE ADDED ADEPT ADMIT ADOBE ADORN ADULT AFTER AGAIN AGREE AILED ALARM ALERT ALGAE ALIAS ALIKE ALIBI ALIEN ALIGN ALIVE ALLAY ALOFT ALOOF ALTER AMAZE AMBER AMPLE AMUSE ANGEL ANGER ANGLE ANGRY ANKLE ANNEX ANNOY ANTIC ANVIL APART APPLE APRON ARDOR ARENA ARGUE ARISE ARMOR AROMA AROSE ARSON ASSET ATTIC AVAIL AWAIT AWAKE AWASH AWFUL BACON BADLY BAGEL BANDY BANJO BASIC BASIL BASIN BASTE BATCH BATHE BEACH BEARD BEAST BELLY BENCH BERTH BIGOT BLESS BLOCK BLOOD BLOOM BLOWN BLUNT BOARD BOAST BOXER BRASH BRAWN BREAK BRIDE BRINE BROOK BROOM BROTH BRUNT BRUTE BUDGE BUMPY CABLE CACHE CAMEO CARGO CAROL CARRY CEASE CHEAP CHEAT CHECK CHEEK CHESS CHEST CHICK CHIEF CHIMP CHILL CHOIR CHOKE CHOMP CHOSE CHUNK CIVIL CLASH CLASP CLASS CLEAN CLEAR CLICK CLIMB CLING CLOCK CLONE CLOSE CLOUD CORAL COULD CREAM CREAK CREED CRIMP CRISP CROAK CROWN CRUEL CRUSH CRUST CURVY CUSHY DAILY DAISY DANCE DANDY DATED DAUNT DEPOT DEPTH DISCO DODGE DOLLY DONOR DOUBT DOUGH DOWEL DRONE DROVE DROWN DWARF DWELL EAGER EAGLE EARLY EATEN EERIE EIGHT ELBOW ELDER ELITE EMPTY ENACT ENTER ENTRY ERODE ESSAY EVADE EVOKE EXACT EXALT EXERT EXILE EXIST EXTRA FABLE FAINT FAITH FANCY FLAIR FLANK FLARE FLASH FLASK FLING FLOAT FLOCK FLOUR FLOUT FLUFF FLUNK FLUSH FLUTE FOCAL FORGE FORTH FORUM FOUND FRAIL FRANK FRAUD FREAK FRESH FRISK FRONT FROST FROWN FUDGE FUNGI GHOST GLARE GLOAT GLOSS GRACE GRADE GRAND GRANT GRASP GRASS GRATE GRAZE GREED GREET GRIME GROAN GROPE GROSS GROUT GRUFF GUISE GUSTO HABIT HANDY HAPPY HARSH HASTY HEAVY HEDGE HEIST HENCE HOIST HOLLY HOTEL HOUND HUMID HUSKY ICILY ICING IDIOT IGLOO INEPT INFER INLAY INNER INSET INTRO IRONY IVORY JERKY JETTY JEWEL JIFFY JUDGE JUICE JUICY JUMPY KARMA KAYAK KNAVE KNOCK KNOWN LABEL LANCE LARGE LASER LATCH LEARN LEASE LEECH LEGAL LIBEL LIGHT LIVER LOBBY LODGE LOGIC LOUSY LOVER LUCKY LUMPY LUSTY MAGIC MANOR MAPLE MARCH MARRY MAXIM MAYOR MELON MERCY MERIT METAL MELEE MERRY MINOR MIRTH MISER MISTY MIXER MOOSE MORAL MOSSY MOTIF MOUND MOURN MUDDY MUSHY MURKY MUSTY NAVEL NEEDY NERVY NIECE NIGHT NINJA NIPPY NOBLE NOISE NORTH NOTCH NOVEL NUDGE OCCUR OCEAN OLIVE ONSET OPTIC ORBIT ORDER OUTDO OUTER OVARY PANSY PARTY PASTA PEACH PEARL PEDAL PENNY PERKY PERCH PETTY PHASE PIANO PILOT PLANE PLANK PLANT PLAZA PLEAD PLUMP PLUNK POACH POISE POLAR POPPY POTTY POUCH POUTY PRANK PRAWN PRIDE PRIME PRIVY PROBE PRONG PROUD PROWL PRUNE PUDGY PURSE PUTTY QUART QUEEN QUERY QUIET QUILL QUIRK QUOTA QUOTE RABID RACER RADAR RAPID RAVEN READY REBUT REGAL RELAY RENEW REPAY REPEL RIGID RIVAL RIVER RIVET ROCKY ROUGH ROWDY ROYAL RUGBY RULER RURAL RUSTY SADLY SANDY SASSY SATIN SAUCE SAUCY SAVOR SCALD SCALP SCALY SCAMP SCARF SCARY SCENE SCORN SCOUT SCOWL SCRAM SCRAP SEEDY SHAKY SHAME SHANK SHAPE SHARE SHARK SHARP SHEER SHELF SHELL SHIFT SHIRT SHORT SHOUT SHOVE SILKY SILLY SINCE SIREN SIXTH SIXTY SKIMP SKUNK SLACK SLAIN SLANT SLICK SLIDE SLIME SLIMY SLOPE SLOTH SLUMP SMACK SMART SMELL SMILE SMIRK SMOKE SNAIL SNARE SNEAK SNEER SNIDE SOGGY SOOTY SORRY SOUTH SPADE SPANK SPARE SPARK SPAWN SPEAR SPECK SPEED SPEND SPIRE SPITE SPOIL SPOKE SPOOK SPOOL SPORE SPORT SPOUT SPUNK STACK STAIN STARK START STASH STATE STEAK STEAL STEAM STEEL STEEP STEER STILL STING STINK STOCK STOMP STONE STONY STORE STORM STORY STOUT STOVE STRAP STRAW STUNT STYLE SUAVE SWAMP SWEAR SWEAT SWEEP SWEET SWIFT SWING SWORD TABOO TALON TANGY TASTY TAWNY TEACH TEMPO TENSE TEPID TOAST TONIC TOPSY TOTAL TOUCH TOUGH TOWEL TOXIC TRACE TRACK TRADE TRAIL TRAIN TRAMP TRAIT TRASH TRAWL TREND TRIAL TRIBE TRICK TROUT TRULY TRUMP TRUST TRUTH TUBER TUMMY TYRANT ULCER ULTRA UNFIT UNION UNTIL UPPER UPSET URBAN VALID VALOR VALVE VAPID VAGUE VAULT VIPER VIRAL VISIT VISOR VIXEN VODKA VOICE VOUCH WACKY WALTZ WARTY WASHY WEEDY WEIRD WHALE WHEEL WHILE WHIRL WHISK WHITE WHOLE WHOSE WIMPY WINDY WITTY WOOZY WORLD WORRY WORSE WORST WORTH YUCKY YUMMY ZEBRA ZIPPY`;
+
+function setWordList(words){
+  const clean=words.map(w=>w.toUpperCase()).filter(w=>/^[A-Z]{2,15}$/.test(w));
+  wByLen={};
+  for(const w of clean){
+    if(!wByLen[w.length])wByLen[w.length]=new Set();
+    wByLen[w.length].add(w);
+  }
+  return clean.length;
+}
+
+function loadBuiltin(){
+  const n=setWordList(BUILTIN.split(/\s+/).filter(Boolean));
+  document.getElementById('wl-status').textContent=`Built-in: ${n} words. Upload a .txt dictionary for full results.`;
+}
+
+function loadFile(inp){
+  const f=inp.files[0]; if(!f)return;
+  const r=new FileReader();
+  r.onload=e=>{
+    const n=setWordList(e.target.result.split(/\r?\n/).map(w=>w.trim()));
+    document.getElementById('wl-status').textContent=`"${f.name}": ${n} words loaded.`;
+  };
+  r.readAsText(f);
+}
+
+// ── BOARD RENDER ───────────────────────────────────────────────────────────
+function initBoard(){
+  const el=document.getElementById('board');
+  el.innerHTML='';
+  for(let r=0;r<BS;r++)for(let c=0;c<BS;c++){
+    const d=document.createElement('div');
+    d.className='cell';
+    d.id=`c${r}_${c}`;
+    const b=BM[r*15+c];
+    if(b)d.classList.add(BL[b]);
+    d.addEventListener('click',()=>clickCell(r,c));
+    el.appendChild(d);
+  }
+  renderBoard();
+}
+
+function renderBoard(hl=null){
+  for(let r=0;r<BS;r++)for(let c=0;c<BS;c++){
+    const d=document.getElementById(`c${r}_${c}`);
+    d.className='cell';
+    const b=BM[r*15+c];
+    if(b)d.classList.add(BL[b]);
+    const L=board[r][c];
+    if(L){
+      d.classList.add('filled');
+      d.innerHTML=`${L}<span class="lv">${LV[L]||''}</span>`;
+    } else {
+      d.textContent=r===CEN&&c===CEN?'★':(b?BN[b]:'');
+    }
+    if(hl){
+      for(let i=0;i<hl.word.length;i++){
+        const hr=hl.dir==='H'?hl.row:hl.row+i;
+        const hc=hl.dir==='H'?hl.col+i:hl.col;
+        if(r===hr&&c===hc&&!board[r][c]){
+          d.classList.add('new-tile');
+          d.textContent=hl.word[i];
+        }
+      }
+    }
+    if(sel&&sel.r===r&&sel.c===c)d.classList.add('selected');
+  }
+}
+
+// ── BOARD INPUT ────────────────────────────────────────────────────────────
+function clickCell(r,c){
+  if(sel&&sel.r===r&&sel.c===c){
+    inputDir=inputDir==='H'?'V':'H';
+    document.getElementById('dir-indicator').textContent=inputDir==='H'?'→ H':'↓ V';
+  }
+  sel={r,c};
+  renderBoard();
+}
+
+document.addEventListener('keydown',e=>{
+  if(!sel)return;
+  const {r,c}=sel;
+  if(e.key==='Escape'){sel=null;renderBoard();return;}
+  if(e.key==='Tab'){
+    e.preventDefault();
+    inputDir=inputDir==='H'?'V':'H';
+    document.getElementById('dir-indicator').textContent=inputDir==='H'?'→ H':'↓ V';
+    renderBoard();return;
+  }
+  if(e.key==='Backspace'||e.key==='Delete'){
+    if(board[r][c])board[r][c]=null;
+    else{
+      if(inputDir==='H'&&c>0)sel={r,c:c-1};
+      else if(inputDir==='V'&&r>0)sel={r:r-1,c};
+      if(board[sel.r][sel.c])board[sel.r][sel.c]=null;
+    }
+    renderBoard();return;
+  }
+  if(/^[a-zA-Z]$/.test(e.key)){
+    board[r][c]=e.key.toUpperCase();
+    if(inputDir==='H'&&c<BS-1)sel={r,c:c+1};
+    else if(inputDir==='V'&&r<BS-1)sel={r:r+1,c};
+    renderBoard();return;
+  }
+  const moves={ArrowRight:{r,c:Math.min(c+1,BS-1)},ArrowLeft:{r,c:Math.max(c-1,0)},ArrowDown:{r:Math.min(r+1,BS-1),c},ArrowUp:{r:Math.max(r-1,0),c}};
+  if(moves[e.key]){sel=moves[e.key];e.preventDefault();renderBoard();}
+});
+
+document.getElementById('rack').addEventListener('input',function(){
+  const d=document.getElementById('rack-display');
+  d.innerHTML=this.value.toUpperCase().split('').map(ch=>`<div class="rt${ch==='?'?' blank':''}">${ch==='?'?'?':ch}${ch!=='?'&&LV[ch]?`<span class="rv">${LV[ch]}</span>`:''}</div>`).join('');
+});
+
+function clearBoard(){
+  board=Array(BS).fill(null).map(()=>Array(BS).fill(null));
+  document.getElementById('results').innerHTML='<div style="color:#555;font-size:13px">Board cleared.</div>';
+  lastResults=[];renderBoard();
+}
+function clearHL(){document.querySelectorAll('.ri').forEach(e=>e.classList.remove('active'));renderBoard();}
+
+// ── SOLVER ─────────────────────────────────────────────────────────────────
+function isEmpty(){return board.every(row=>row.every(c=>c===null));}
+
+function matchTpl(word,tpl){
+  for(let i=0;i<tpl.length;i++)if(tpl[i]&&tpl[i]!==word[i])return false;
+  return true;
+}
+
+function trySources(word,tpl,rack){
+  const rc=[...rack],src=[];
+  for(let i=0;i<word.length;i++){
+    if(tpl[i]){src.push('B');continue;}
+    const idx=rc.indexOf(word[i]);
+    if(idx!==-1){src.push('R');rc.splice(idx,1);}
+    else{const bi=rc.indexOf('?');if(bi!==-1){src.push('X');rc.splice(bi,1);}else return null;}
+  }
+  return src;
+}
+
+function crossWord(r,c,L,dir){
+  if(dir==='H'){
+    let t=r,b=r;
+    while(t>0&&board[t-1][c])t--;
+    while(b<BS-1&&board[b+1][c])b++;
+    if(t===b)return null;
+    let w='';for(let i=t;i<=b;i++)w+=i===r?L:board[i][c];return w;
+  } else {
+    let l=c,ri=c;
+    while(l>0&&board[r][l-1])l--;
+    while(ri<BS-1&&board[r][ri+1])ri++;
+    if(l===ri)return null;
+    let w='';for(let i=l;i<=ri;i++)w+=i===c?L:board[r][i];return w;
+  }
+}
+
+function cwValid(cw){if(!cw||cw.length<2)return true;return wByLen[cw.length]&&wByLen[cw.length].has(cw);}
+
+function scoreMove(word,row,col,dir,src){
+  let main=0,wm=1,cross=0,used=0;
+  for(let i=0;i<word.length;i++){
+    const r=dir==='H'?row:row+i,c=dir==='H'?col+i:col;
+    const lv=src[i]==='X'?0:(LV[word[i]]||0);
+    const bn=src[i]!=='B'?BM[r*15+c]:null;
+    if(src[i]!=='B'){
+      used++;
+      if(bn==='DL')main+=lv*2;
+      else if(bn==='TL')main+=lv*3;
+      else main+=lv;
+      if(bn==='DW'||bn==='TW')wm*=bn==='TW'?3:2;
+      // cross-word contribution
+      const cw=crossWord(r,c,word[i],dir);
+      if(cw){
+        let cs=bn==='DL'?lv*2:bn==='TL'?lv*3:lv,cm=bn==='DW'?2:bn==='TW'?3:1;
+        if(dir==='H'){let t=r-1,b=r+1;while(t>=0&&board[t][c]){cs+=LV[board[t][c]]||0;t--;}while(b<BS&&board[b][c]){cs+=LV[board[b][c]]||0;b++;}}
+        else{let l=c-1,ri=c+1;while(l>=0&&board[r][l]){cs+=LV[board[r][l]]||0;l--;}while(ri<BS&&board[r][ri]){cs+=LV[board[r][ri]]||0;ri++;}}
+        cross+=cs*cm;
+      }
+    } else {
+      main+=lv;
+    }
+  }
+  return main*wm+cross+(used===7?50:0);
+}
+
+function findDir(rack,dir,results){
+  for(let line=0;line<BS;line++){
+    const la=[];
+    for(let p=0;p<BS;p++)la.push(dir==='H'?board[line][p]:board[p][line]);
+    const anchors=new Set();
+    const empty=isEmpty();
+    if(empty){if((dir==='H'&&line===CEN)||(dir==='V'&&line===CEN))anchors.add(CEN);}
+    else{
+      for(let p=0;p<BS;p++){
+        const r=dir==='H'?line:p,c=dir==='H'?p:line;
+        if(la[p]!==null)anchors.add(p);
+        else if((r>0&&board[r-1][c])||(r<BS-1&&board[r+1][c])||(c>0&&board[r][c-1])||(c<BS-1&&board[r][c+1]))anchors.add(p);
+      }
+    }
+    if(!anchors.size)continue;
+    for(let start=0;start<BS;start++){
+      if(start>0&&la[start-1]!==null)continue;
+      for(let len=2;len<=BS-start;len++){
+        const end=start+len-1;
+        if(end<BS-1&&la[end+1]!==null)continue;
+        let hit=false;for(const a of anchors)if(a>=start&&a<=end){hit=true;break;}
+        if(!hit)continue;
+        const tpl=la.slice(start,start+len);
+        const nc=tpl.filter(x=>x===null).length;
+        if(!nc||nc>rack.length)continue;
+        const cands=wByLen[len];if(!cands)continue;
+        for(const word of cands){
+          if(!matchTpl(word,tpl))continue;
+          const src=trySources(word,tpl,rack);if(!src)continue;
+          let ok=true;
+          for(let i=0;i<len;i++){
+            if(src[i]==='B')continue;
+            const r=dir==='H'?line:start+i,c=dir==='H'?start+i:line;
+            if(!cwValid(crossWord(r,c,word[i],dir))){ok=false;break;}
+          }
+          if(!ok)continue;
+          const row=dir==='H'?line:start,col=dir==='H'?start:line;
+          const score=scoreMove(word,row,col,dir,src);
+          results.push({word,row,col,dir,score,src});
+        }
+      }
+    }
+  }
+}
+
+function solve(){
+  const rackStr=document.getElementById('rack').value.toUpperCase().replace(/[^A-Z?]/g,'');
+  if(!rackStr){alert('Enter your rack tiles first.');return;}
+  if(!Object.keys(wByLen).length){alert('No word list loaded.');return;}
+  const rack=rackStr.split('');
+  const btn=document.getElementById('solve-btn');
+  btn.disabled=true;
+  document.getElementById('solving').style.display='block';
+  setTimeout(()=>{
+    const res=[];
+    findDir(rack,'H',res);
+    findDir(rack,'V',res);
+    res.sort((a,b)=>b.score-a.score);
+    const seen=new Set();
+    const uniq=res.filter(r=>{const k=`${r.word}|${r.row}|${r.col}|${r.dir}`;if(seen.has(k))return false;seen.add(k);return true;});
+    lastResults=uniq.slice(0,30);
+    displayResults(lastResults);
+    btn.disabled=false;
+    document.getElementById('solving').style.display='none';
+  },30);
+}
+
+function colLtr(c){return String.fromCharCode(65+c);}
+
+function displayResults(res){
+  const el=document.getElementById('results');
+  if(!res.length){el.innerHTML='<div style="color:#888;font-size:13px">No valid moves found. Check your word list or board state.</div>';return;}
+  el.innerHTML=res.map((r,i)=>{
+    const pos=r.dir==='H'?`${r.row+1}${colLtr(r.col)} →`:`${colLtr(r.col)}${r.row+1} ↓`;
+    const bingo=r.src.filter(s=>s!=='B').length===7?'<span class="rb">BINGO!</span>':'';
+    return `<div class="ri" onclick="hlMove(${i})" data-i="${i}"><div><div class="rw">${r.word}${bingo}</div><div class="rp">${pos}</div></div><div class="rs">+${r.score}</div></div>`;
+  }).join('');
+}
+
+function hlMove(i){
+  document.querySelectorAll('.ri').forEach(e=>e.classList.remove('active'));
+  document.querySelector(`.ri[data-i="${i}"]`)?.classList.add('active');
+  renderBoard(lastResults[i]);
+}
+
+// ── INIT ───────────────────────────────────────────────────────────────────
+loadBuiltin();
+initBoard();
+</script>
+</body>
+</html>
