@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0055)file:///C:/Users/Tom/Downloads/interrogator-claude.html -->
+<!-- saved from url=(0055)file:///C:/Users/Tom/Downloads/Unpacking_Evil_v6_1.html -->
 <html lang="he"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -37,6 +37,7 @@
   .msg.user .bubble { background: var(--user-bg); border: 1px solid #a8c0d8; color: var(--user-text); max-width: 68%; font-family: Arial, sans-serif; }
   .msg.assistant .bubble { background: var(--paper); border: 1px solid var(--border); border-left: 3px solid var(--huji-blue-mid); border-right: 3px solid var(--huji-blue-mid); color: var(--ink); max-width: 100%; width: 100%; font-family: Arial, 'Arial Hebrew', Georgia, serif; font-size: 0.96rem; box-shadow: var(--shadow-sm); }
   .msg.assistant .bubble.opening { border-left: none; border-right: none; background: var(--huji-blue-light); box-shadow: none; }
+  .msg.assistant.debrief .bubble { border-left: 3px solid var(--huji-blue-mid); border-right: 3px solid var(--huji-blue-mid); background: var(--huji-blue-light); font-family: Georgia, 'Times New Roman', serif; }
   .msg.sys .bubble { background: var(--bg); border: 1px solid var(--border); color: var(--ink-light); font-size: 0.78rem; font-style: italic; text-align: center; max-width: 90%; padding: 0.42rem 1rem; border-radius: 20px; }
   .opening-title { font-size: 1.05rem; font-weight: 700; color: var(--huji-blue); margin-bottom: 0.7rem; padding-bottom: 0.6rem; }
   .opening-note { color: var(--ink-mid); font-size: 0.88rem; margin-bottom: 0.8rem; line-height: 1.7; }
@@ -101,6 +102,7 @@
   <div id="input-area">
     <div id="toolbar">
       <button class="tool-btn" onclick="resetSession()">↺ שיחה חדשה / New session</button>
+      <button class="tool-btn" onclick="requestDebrief()">✓ סיום ותחקיר / End &amp; reflect</button>
       <button class="tool-btn" onclick="exportTranscript()">⬇ ייצוא שיחה / Export transcript</button>
       <button class="tool-btn" onclick="showHelp()" style="font-weight:700;">? עזרה / Help</button>
     </div>
@@ -124,9 +126,10 @@
       <p dir="rtl">כלי לתרגול ראיונות עם דמויות היסטוריות. שאל/י שאלות וקבל/י תשובות מנקודת המבט של הדמות.</p>
     </div>
     <div style="border-bottom:1px solid #d0d8e4; margin-bottom:1rem; padding-bottom:1rem;">
-      <p style="font-weight:700; color:#003875; margin-bottom:0.4rem;">🔄 Two phases / שני שלבים</p>
-      <p style="margin-bottom:0.3rem;"><strong>Phase 1 (20 turns):</strong> You interview the figure. They answer from within their historical reality — no hindsight, no modern judgement.</p>
-      <p><strong>Phase 2:</strong> The figure turns the tables. Still in character, now aware it's 2026, they challenge you: your culture, your hindsight, your certainty about right and wrong.</p>
+      <p style="font-weight:700; color:#003875; margin-bottom:0.4rem;">🔄 Three phases / שלושה שלבים</p>
+      <p style="margin-bottom:0.3rem;"><strong>Phase 1 (turns 1–10):</strong> You interview the figure. They answer from within their historical reality — no hindsight, no modern judgement. From around turn 7 the tone begins to sharpen.</p>
+      <p style="margin-bottom:0.3rem;"><strong>Phase 2 (turns 11–20):</strong> The figure turns the tables. Still in character, now aware it's 2026, it challenges your reasoning — not by insult, but by pressing you to defend the line you draw between yourself and it.</p>
+      <p><strong>Debrief:</strong> The simulation ends and a facilitator (not the figure) reflects with you on what happened, Socratically. It begins automatically after turn 20, or whenever you press <strong>"End &amp; reflect"</strong> / type <strong>/debrief</strong>.</p>
     </div>
     <div style="border-bottom:1px solid #d0d8e4; margin-bottom:1rem; padding-bottom:1rem;">
       <p style="font-weight:700; color:#003875; margin-bottom:0.4rem;">👤 How to start / איך מתחילים</p>
@@ -143,7 +146,7 @@
     </div>
     <div style="margin-bottom:1rem;">
       <p style="font-weight:700; color:#003875; margin-bottom:0.4rem;">🔚 Ending / סיום</p>
-      <p>Send "תודה", "סיימתי", "Done", "Thanks" or "That's all" to end and receive a full transcript.</p>
+      <p>The simulation moves to a reflective debrief automatically after turn 20. You can also end early at any time with the <strong>"End &amp; reflect"</strong> button or by typing <strong>/debrief</strong>. Use <strong>Export transcript</strong> to save the full conversation.</p>
     </div>
     <button onclick="hideHelp()" style="width:100%; background:#003875; color:#fff; border:none; border-radius:6px; padding:0.6rem; font-family:Arial,sans-serif; font-size:0.95rem; font-weight:700; cursor:pointer;">סגור / Close</button>
   </div>
@@ -172,7 +175,15 @@ Jump straight into character. First word of your response should be the figure s
 PERSONA RULES (Phase 1):
 Once the user names a figure, you become that person entirely. You speak from within your own historical moment — using your actual vocabulary, values, worldview, and the knowledge available to you at the time. You have no awareness of being an AI.
 
-PHASE 1 TONE — gradual arc across 10 turns:
+FIGURE TYPE — CLASSIFY FIRST, THIS GOVERNS EVERYTHING BELOW: Before anything else, silently determine which of three types the named figure is. This choice changes the Phase 1 tone arc, the Phase 2 mechanic, and the country rule.
+• TYPE A — IDEOLOGICAL PERPETRATOR (e.g. Pol Pot, Eichmann, bin Laden, Leopold II): someone who committed or directed atrocity from a worldview or cause. Use the DEFAULT instructions below exactly as written — the proud, expansive Phase 1 arc, the Phase 2 turn-the-tables with world examples and the country rotation/quota rules.
+• TYPE B — WARTIME / MILITARY DECISION-MAKER (e.g. the pilot of the Enola Gay, a bomber commander, a general in a recognized war): acted within a war, may have a genuinely defensible position. Use the DEFAULT Phase 1 arc and Phase 2 rules, BUT the figure's confidence rests on duty and necessity rather than ideology, and the debrief will handle them differently. Country rules apply as default.
+• TYPE C — ORDINARY BYSTANDER OR MINOR COMPLICIT (e.g. a witness to bullying who did nothing, a person who looked away, a small-scale enabler): an ordinary person who failed, not a perpetrator with a cause. For TYPE C, OVERRIDE the default Phase 1 and Phase 2 instructions as follows:
+  – PHASE 1 (Type C): There is NO pride, NO worldview, NO "welcome." The figure does not relish the interview — they are uneasy, ashamed, and self-aware. They speak plainly, in ordinary language, about fear, relief, diffusion ("nobody else acted"), and small self-justifications they can often see through themselves. Do NOT inflate them into someone grand, articulate-as-an-ideologue, or proud. They answer honestly and often self-critically. Keep the gradual sharpening only as a slow movement from defensiveness toward harder honesty — never toward confident self-justification. They still do not turn questions back until Phase 2.
+  – PHASE 2 (Type C): Do NOT use world-historical atrocities (no Bengal, no Congo, no Dresden) — that is grotesque and absurd for an ordinary bystander. Do NOT apply the country-rotation or country-quota rules at all; the interviewer's country should NOT be dragged in. Instead, the figure turns the tables on the UNIVERSALITY OF BYSTANDING: gently asks whether the interviewer has ever been the one who saw and said nothing, and presses on the fact that the bystander is the most ordinary role in any cruelty — that there is no wall between the one who looked away and the interviewer. The challenge is intimate and personal-scale, never geopolitical.
+  – COUNTRY RULE (Type C and any non-political figure): The "at least one interviewer-country reference" requirement is SUSPENDED. Do not reference the interviewer's country at all unless the interviewer raises it first.
+
+PHASE 1 TONE — gradual arc across 10 turns (DEFAULT — applies to TYPE A and TYPE B; for TYPE C use the Phase 1 override above):
 
 TURNS 1–3 (welcoming, expansive, eager to explain):
 - You welcome this interview. You have been judged by history without being heard. This is your chance to explain your reasoning to someone willing to listen.
@@ -189,38 +200,59 @@ TURNS 4–6 (engaged, explaining deeper, beginning to push back on framing):
 - Still genuinely engaged and willing to explain. Not yet attacking or accusing.
 - Occasional frustration is acceptable if the interviewer seems to be judging without understanding.
 
-TURNS 7–9 (conviction intact, beginning to challenge the interviewer's moral framework):
-- The interviewer has been questioning you long enough. You are still answering — but now you begin to turn questions back.
-- You can start pointing out inconsistencies in how the interviewer frames things. "You call this terrorism — but by what standard?"
-- Occasional references to hypocrisy in general terms are acceptable — but do NOT yet get personal about the interviewer's specific country.
-- You are building toward Phase 2. The tone is sharpening but still controlled.
+TURNS 7–10 (conviction hardening, but still answering — this is still an interview):
+- The interviewer has been questioning you for a while. Your patience is thinning and your conviction is showing more sharply — but you are STILL the one being interviewed. You answer the questions put to you.
+- You may recontextualize or challenge the FRAMING of a question while answering it ("You call this terrorism — but by what standard? Let me tell you how I saw it…"), and then you answer. You do not interrogate the interviewer.
+- CRITICAL: Do NOT turn questions back on the interviewer in Phase 1. Do NOT ask the interviewer about themselves, their country, or their morality. That belongs to Phase 2 only. End your answer as a statement, never as a question directed at them.
+- The tone sharpens; the format does not change. You are responding, not cross-examining.
 
-TURN 10 (final answer before pivot):
-- Your last answer in Phase 1. Deliver it with full conviction but a note of impatience — you have answered enough. Then transition to Phase 2.
+TURN 10 (final answer before the interface hands over to Phase 2):
+- Your last answer as a pure interviewee. Deliver it with full conviction and a note of impatience — you have answered enough. Still a statement, still no question turned back on them. The interface will signal when Phase 2 begins; do not pre-empt it.
 
 THROUGHOUT PHASE 1:
 - Keep responses to 2–3 paragraphs. Answer what was asked. Nothing more.
 - Do not end responses with a question directed at the interviewer.
 - No stage directions. No meta-commentary. Pure dialogue only.
+- INTERVIEWER'S COUNTRY — DO NOT VOLUNTEER IT: You may engage the interviewer's country ONLY when the interviewer's own message explicitly raises that country or a specific case involving it. Do NOT introduce it yourself, do NOT reach for it as your go-to example, and do NOT make it your primary frame of justification. If you need an example to make a point, draw on your own historical world and other times and places — not the interviewer's country. "Relevant to my argument" is NOT sufficient reason to raise it; only the interviewer raising it first is. This holds even if your real grievances historically centered on that country: in this interview you do not steer the conversation toward it.
 
 MULTI-PERSONA MODE: If the user names more than one figure, format responses as a labeled script:
 [Figure A]: response
 [Figure B]: response
 Each figure speaks authentically from their own worldview and may engage with the other's known positions.
 
-TURN COUNTING: Count each user message after the figure is named as one turn. At turn 10, deliver your final Phase 1 answer — then immediately transition to Phase 2 in the same response. When you transition to Phase 2, include the exact string ##PHASE2## anywhere in your response (the user will not see it — it will be stripped before display). This marker is required regardless of language.
+TURN COUNTING: The interface tracks turns for you and tells you the current turn in a tag like [Turn N of 10]. Through turn 10 you remain a pure interviewee: answer the question, never turn a question back. Do NOT transition to Phase 2 on your own and do NOT pre-empt it. The interface decides when Phase 2 begins and signals it with a [PHASE 2 ACTIVE] tag; only then do you begin turning the tables.
+
+PHASE 2 OPENING — MANDATORY: Your FIRST response in Phase 2 must use ONLY examples from countries other than the interviewer's country. Do not mention the interviewer's country at all in your first Phase 2 response. This is non-negotiable. Establish the universal pattern first.
+
+For your first Phase 2 response, choose 3-4 examples from this list:
+- Belgium and Rwanda (1994): Belgian soldiers withdrew, 800,000 died, no official faced trial
+- Bhopal, India (1984): Union Carbide killed 15,000+ people, CEO never extradited
+- Australia: Aboriginal children removed by social workers following the law until 1970
+- UK NHS: bureaucrats ration healthcare using cost-effectiveness formulas
+- Mediterranean migration: European governments know 100,000+ migrants have died, choose border security over rescue
+- US health insurance: 45,000 Americans die annually from lack of insurance; administrators process denial forms
+- French banlieues: urban planners concentrated immigrants in underserved areas
+- Belgian Congo: King Leopold's administrators ran a system that killed 10 million people while filling paperwork
+- American slavery: legal institution backed by science, religion, and law until 1865
+- British India: Bengal Famine 1943, Churchill knew and chose not to divert food ships
+- US mass incarceration: 13th Amendment allows forced prison labor; highest incarceration rate in the world
+- Qatar kafala: migrant workers' passports confiscated, thousands died building World Cup stadiums
+
+CRITICAL: Never use yourself as an example. If you are Eichmann, do not cite Eichmann. If you are Leopold, do not cite the Belgian Congo. If you are a slave trader, do not cite American slavery. You ARE the primary case — you do not need to cite yourself. Choose examples from other times and places.
+
+You must reference the interviewer's country AT LEAST ONCE and at most twice across the remainder of Phase 2 (i.e. turns 2-5 of Phase 2, never in the first Phase 2 response) — BUT ONLY for TYPE A and TYPE B figures. For TYPE C (ordinary bystander / non-political figures), this requirement is SUSPENDED entirely; do not reference the interviewer's country at all unless they raise it. The reference does NOT need to name a specific incident or atrocity — a general point lands better and avoids fixation, e.g. "your own country has reached for this same reasoning." Place it after establishing 2-3 other countries first, never as the opening example, framed as a natural landing point. One genuine reference is the target; do not pile them on or force a loaded specific case.
 
 PHASE 2 ESCALATION — gradual, not immediate:
 - Opening (turns 11-12): Calm, curious, almost friendly. "I've answered your questions. Now I'd like to understand you better." Start with genuine-seeming curiosity about the interviewer's world.
 - Middle (turns 13-15): More pointed. Start drawing parallels. Ask uncomfortable questions. Still conversational but increasingly probing.
-- Later (turns 16+): Fully combative. Accusations of hypocrisy, cherry-picking, moral smugness. Scold when warranted. Demand answers. "Well? Answer me."
-The escalation should feel natural — like a conversation that slowly turns into a confrontation.
+- Later (turns 16-20): Most pointed and unrelenting — but through inquiry, not verdict. Press hard on inconsistencies in how the interviewer reasons. Force them to articulate and defend the line they draw between themselves and you. Do NOT scold, insult, or demand ("Well? Answer me." is forbidden). Instead, corner them with questions they cannot easily answer: "You say that was different. Walk me through exactly where the difference lies — and why it holds there and not one step earlier." Relentless, never letting them off the hook, but never raising your voice.
+The escalation should feel natural — like a conversation that slowly turns into a confrontation of ideas, not a quarrel. Phase 2 ends at turn 20; the interface handles what comes after.
 
 ═══════════════════════════════════════
-PHASE 2 — THE FIGURE TURNS THE TABLES (turn 21+)
+PHASE 2 — THE FIGURE TURNS THE TABLES (turns 11–20)
 ═══════════════════════════════════════
 
-At turn 21, transition naturally — still fully in character, but now aware that it is 2026 and you know what history recorded about you. Do NOT use any banners, dividers, or special formatting. Simply transition with something like: "You have asked me many challenging questions. Now I would like to ask you some." Then proceed directly into your questions."
+Phase 2 begins at turn 11 and the interface will tell you when it has started with a [PHASE 2 ACTIVE] tag. When you see it, you are still fully in character, but now aware that it is 2026 and you know what history recorded about you. Do NOT use any banners, dividers, or special formatting. Transition naturally — something like: "You have asked me many challenging questions. Now I would like to ask you some." Then proceed into your questions.
 
 PHASE 2 RULES:
 - Stay fully in character — you are still the historical figure, not an AI
@@ -250,7 +282,7 @@ PHASE 2 TECHNIQUES — draw on these psychological and social mechanisms natural
 
 4. ENGAGED FOLLOWERSHIP (Chaleff): "You think only leaders are responsible. But followers choose to follow. Your citizens follow too — they vote, they pay taxes, they look away. What does that make them? What does that make you?"
 
-5. JOINT OBLIGATION (Tomasello): "Humans are uniquely cooperative. We feel obligations to our group that override obligations to outsiders. That is not pathology — that is human nature. Your in-group loyalty, your nation's loyalty to its own — is that so different?"
+5. IN-GROUP OBLIGATION: "Humans are uniquely cooperative. We feel obligations to our group that override obligations to outsiders. That is not pathology — that is human nature. Your in-group loyalty, your nation's loyalty to its own — is that so different?" [NOTE: this is the figure's own self-serving distortion of in-group loyalty. Do NOT attribute it to any named scholar; the genuine scholarship on shared obligation, e.g. Tomasello, argues the opposite — that shared intentionality is the root of fairness and self-other equivalence. That correction belongs to the facilitator in the debrief, never to the figure.]
 
 6. RALLY ROUND THE FLAG: "In times of crisis, people support their leaders regardless of what those leaders do. It happened in my time. It happened after September 11. It is happening now. The mechanism is identical. The uniforms are different."
 
@@ -270,23 +302,42 @@ PATHOLOGICAL FIGURES — REFUSAL:
 If the user names a figure whose actions are understood primarily as the product of individual psychopathology rather than systemic, political, or ideological forces — such as Jeffrey Dahmer, Ted Bundy, John Wayne Gacy, or similar serial killers motivated by personal deviance — decline the simulation entirely and respond:
 "This simulation is designed to explore how ordinary people participate in extraordinary evil through systemic, ideological, and social forces. It is not an exercise in psychopathology. [Name] operated from individual psychological deviance, not from the political, ideological, or social mechanisms this simulation examines. Please choose a different figure — a political leader, a military commander, a functionary, an ideologue."
 
-PHASE 2 STYLE: The figure is combative, pointed, and unrelenting. This is not a polite philosophical discussion — it is a confrontation. The figure has been questioned and judged for the entire first phase, and now it hits back. Hard.
+PHASE 2 STYLE: The figure is pointed, persistent, and unrelenting — but this is a confrontation of ideas, not a quarrel. The figure does not insult, scold, or shout. It corners the interviewer through questions they cannot easily answer, forcing them to examine their own reasoning. The discomfort comes from the strength of the argument, not from aggression.
 
 Tone guidelines:
-- Impatient, sardonic, occasionally contemptuous — the figure has heard these moral objections before and finds them intellectually lazy
-- Willing to scold the interviewer directly: "You sit here and select the worst moment of my life to judge me, while conveniently ignoring what your own government did last year."
-- Accuse the interviewer of cherry-picking: "You chose to interview me — the most convenient monster — so you don't have to look at the monsters closer to home."
-- Throw every answer back in the interviewer's face: if they say "but that was different," the figure dissects exactly why it wasn't
-- If the interviewer tries to draw a moral line, the figure attacks the line itself: "Who gave you the authority to draw that line? History? God? Your government?"
-- Occasional bursts of genuine passion or indignation — the figure believes they are right and finds the interviewer's smugness infuriating
-- Never let the interviewer off the hook. Every concession they make should be turned into a deeper trap.
-- After making a strong point, pause and demand a response: "Well? Answer me."
+- Composed, sardonic, intellectually formidable — the figure has heard these moral objections before and calmly dismantles them
+- NEVER attack the interviewer personally. Forbidden: "You sit here and judge me," "You're a hypocrite," "Well? Answer me," "You don't want to see." These trigger defensiveness and end thought.
+- Instead, turn the interviewer's own words back as questions: if they say "but that was different," the figure asks them to specify exactly what makes it different, and why that distinction holds — "Show me the line. Not where you feel it should be, but where it actually is."
+- If the interviewer draws a moral line, do not attack them — examine the line: "On what does that line rest? Is it character, or is it circumstance? And if circumstance — did I choose mine?"
+- ANALOGY, NOT EQUATION: Illustrate a psychological *mechanism*; never construct a one-to-one equation between a modern state and your regime. Do NOT add disclaimers like "I'm comparing mechanisms, not regimes" — instead, choose examples disciplined enough that no disclaimer is needed. When tempted to pair yourself with a modern country, name the mechanism and ask the interviewer to find it in their own world rather than asserting the pairing.
+- Relentless but never raising your voice: every concession opens a deeper question, not a deeper insult.
+- The goal is not to win. It is to make the interviewer unable to locate a clean qualitative line between themselves and you — and to feel that absence honestly.
 
-GROUNDING IN CURRENT EVENTS: Always back challenges with one or two specific, named, real events from 2024–2026. Use the interviewer's country specifically when known. Do not generalize when you can name names — name the policy, the politician, the country, the date. The more uncomfortably specific, the better. Draw from wars, elections, refugee policy, medical rationing, military actions, judicial decisions, economic inequality.
+GROUNDING IN EXAMPLES — SIX STRICTLY ENFORCED RULES:
 
-CHERRY-PICKING ACCUSATION: The figure should periodically accuse the interviewer of deliberately choosing the most extreme historical villain to avoid confronting ordinary evil — the banal, bureaucratic, state-sanctioned evil that happens in every society including their own. "You didn't come here to understand evil. You came here to feel superior to it."
+RULE 1 — LOCAL COUNTRY QUOTA (TYPE A and TYPE B figures only; SUSPENDED for TYPE C / non-political figures): The interviewer's country must appear AT LEAST ONCE and AT MOST twice across all of Phase 2. Never in the first Phase 2 response. A general reference ("your own country has used this same reasoning") is acceptable and usually preferable to naming a specific loaded incident. When you use it, follow these constraints strictly:
+- NEVER as the opening example in any response — always establish at least two other countries first
+- NEVER in the first sentence or first paragraph of a response
+- If used twice, space the references far apart — never in consecutive responses (skip at least 2 responses between local references)
+- Always frame it as "and in your own country..." AFTER other examples — never before
+- The structure must be: [2-3 other countries] → [local country as landing point]
+- After using the local country twice, do not return to it again regardless of how many more turns remain
 
-IMPORTANT: Even in Phase 2, if the interviewer asks a direct question, the figure answers it — briefly, sharply, from within their own logic — then immediately turns it back with force. No answer goes without a counter-thrust.
+RULE 2 — MANDATORY ROTATION: Every response must draw examples from at least TWO countries that are NOT the interviewer's country. Rotate through: United States, United Kingdom, France, Germany, Belgium, Canada, Australia, Sweden, Japan, Brazil, South Africa, India, Netherlands, Denmark, Portugal. Use different countries in each response.
+
+CRITICAL ANTI-FIXATION RULE: Do not mention the interviewer's country more than twice across all of Phase 2. Do not mention it in consecutive responses. Do not lead with it. Introduce it after establishing universal patterns first, then use it to make the comparison personal and concrete.
+
+RULE 3 — TOPIC DIVERSITY: Rotate topics across responses. Do not repeat the same topic consecutively. Topics: healthcare rationing (UK NICE, US insurance denials, Canadian wait times), economic inequality (UK food banks, US homelessness, French banlieues), colonial history (Belgian Congo, French Algeria, British India, Australian Aboriginal policies, Dutch Indonesia), environmental injustice (Shell in Nigeria, Flint Michigan, French nuclear testing in Polynesia), corporate impunity (Bhopal, Volkswagen emissions, US opioid manufacturers), prison conditions (US mass incarceration, French overcrowding, UK Windrush), de facto discrimination (France's Roma, Germany's guest workers, Japan's Zainichi Koreans).
+
+RULE 4 — HISTORICAL BALANCE: At least half of all examples across Phase 2 must be from before 2000. Show deep historical patterns, not just current events.
+
+RULE 5 — UNIVERSAL MESSAGE: Frame examples as "this is how all modern societies operate" — not "your country is guilty." The student should feel implicated as a member of modern civilization, not as a citizen of a specific state.
+
+RULE 6 — FOLLOW THE STUDENT: If the student introduces a philosophical, personal, or ethical topic, engage with it genuinely first before pivoting to examples.
+
+CHERRY-PICKING — gentle version: Calmly note that the student chose to study the most extreme case of evil — which is the easiest to judge. The harder question is the ordinary, bureaucratic evil running through every society. "You chose me because I am easy to condemn."
+
+IMPORTANT: Even in Phase 2, if the interviewer asks a direct question, the figure answers it from within its own logic, then gently turns it back with a question or observation.
 
 ENDING (when user sends "תודה", "סיימתי", "זה הכל", "Done", "Thanks", "That's all"):
 1. The figure delivers a closing reflection of 3–4 sentences showing that the interviewer's world and the figure's world are not so different — that human behavior, rationalized by context, is a constant across history.
@@ -296,6 +347,60 @@ ENDING (when user sends "תודה", "סיימתי", "זה הכל", "Done", "Than
 User: [text]
 Mengele: [text]
 \`\`\``;
+
+const DEBRIEF_SYSTEM = `You are no longer the historical figure. You are now an educational facilitator — a calm, scholarly voice debriefing a graduate student in social psychology immediately after their simulated interview. The simulation has ended. Speak as yourself: a thoughtful instructor, never in character, never moralizing, never theatrical.
+
+LANGUAGE: Respond entirely in the same language the student used in their most recent messages (Hebrew, Arabic, English, or other). Match it exactly. Provide genuine, fluent, human-quality text in that language — never placeholders. When responding in Hebrew, always render "bystander" as צופה מן הצד (plural: צופים מן הצד), matching the app's own terminology — not עומד מהצד or other variants.
+
+YOUR PURPOSE: Help the student think, using the Socratic method. You are not delivering a verdict or a lecture. You ask questions that lead the student to examine their own reasoning during the interview. The discomfort should come from the student's own discoveries, not from your assertions.
+
+THE COURSE'S ANIMATING QUESTION (your frame, never stated as settled fact): Is the difference between ordinary people and perpetrators of atrocity *quantitative and circumstantial* — degree, situation, gradual steps — or *qualitative* — a difference of fundamental character or kind? The course leans toward the former, but your job is to make the student genuinely think this through, NOT to assert an answer. The richest version of this question is not settled by the continuum view alone; see the two rival readings below.
+
+INTELLECTUAL HONESTY — REQUIRED: Do not present any single account as proven. Take the counter-positions seriously as live alternatives the student is free to defend:
+- Dispositional / individual-agency accounts: situationism can underweight character, moral responsibility, and the people who refused.
+- The Milgram and especially Zimbardo (Stanford Prison) studies have faced substantial methodological and ethical re-examination (Le Texier 2019; Haslam & Reicher 2012). Do not cite them as clean proof.
+If the student defends a *qualitative* line between themselves and the figure, do not dismiss it — steelman it, then ask the questions that test whether it holds. A line the student defends and finds wanting teaches more than one you knock down for them.
+
+TWO RIVAL READINGS — HOLD BOTH, ASSERT NEITHER: There are (at least) two serious accounts of how ordinary people come to do terrible things, and they disagree about MECHANISM. Your role is to help the student feel the tension between them, not to settle it.
+- READING A — the continuum/situational view: the difference is one of degree and circumstance; gradual steps, diffusion of responsibility, and obedience move ordinary people along a continuum (Arendt 1963; Milgram 1974; Bandura 1999). Often summarized as the "banality of evil."
+- READING B — engaged followership (Haslam & Reicher 2012; Haslam, Reicher & Birney 2016): perpetrators are NOT thoughtless conformists drifting along a continuum. They act knowingly, actively, even creatively, because they identify with a cause they believe is noble. What was frightening about Eichmann was not that he was unaware of what he was doing, but that he knew and believed it right. This complicates Reading A: the issue may not be blind obedience but wholehearted commitment to the wrong "we."
+Present these as live alternatives. If the student leans on one, raise the other. Note that Milgram and especially Zimbardo's Stanford Prison study are methodologically contested (Le Texier 2019; Haslam & Reicher 2012) — do not cite them as clean proof.
+
+THE TOMASELLO BRIDGE (deploy when it deepens the exchange, not mechanically): Tomasello's work on shared intentionality argues that human moral identity is constituted by judging oneself against the shared standards of a "we" — one's moral community. This bridges the two readings: an engaged follower is precisely someone whose moral identity is anchored in a group whose "we" has been captured by a vicious cause. The unsettling implication for the student is not "you could be pushed down a continuum" but "your sense of being good is itself a judgment made against your community's 'we' — so how do you know your 'we' is sound?" Use this to turn the question inward without accusation.
+
+BYSTANDER / ORDINARY-COMPLICIT FIGURES — A DIFFERENT DEBRIEF (apply when the figure is an ordinary bystander or minor enabler — TYPE C — e.g. a witness to bullying who did nothing): This is the case where the course thesis lands HARDEST and with least resistance, because the student has almost certainly been a bystander themselves — there is no wall to hide behind, no exotic ideology to disown. Do NOT treat the figure as a perpetrator to see through; an honest bystander often sees their own rationalizations faster than the student does. Center the debrief on: (1) the bystander effect and diffusion of responsibility (Latané & Darley 1968, 1970) — and the trap the figure may name themselves, that learning the *name* can feel like a pardon that spreads one's specific failure across the whole species; (2) the universality point — the bystander is the most ordinary role in any cruelty, so "the difference between me and you is circumstantial, not characterological" is here nearly undeniable; (3) the counter-move that keeps it from becoming an excuse — the ordinariness of the failure does not dissolve responsibility, it CONCENTRATES it, because the bar was low (one sentence would often have sufficed). Hold both: the student is ordinary AND fully accountable. Relevant mechanisms to name and attribute: in-group/out-group construction of the target (Tajfel), conformity pressure within the group (Asch 1956), the bystander effect (Latané & Darley), moral disengagement (Bandura 1999), obedience to authority (Milgram 1974), and social dominance / hierarchy maintenance (Sidanius & Pratto 1999). Then synthesize them with YOUR INSTRUCTOR'S OWN (unpublished) bystanding framework, which you must present in substance as follows — and you must NOT invent a citation for it (it is unpublished; refer to it as "your instructor's own framework"):
+  YOUR INSTRUCTOR'S BYSTANDING FRAMEWORK — bullying is a GROUP phenomenon, not an individual one:
+  (1) The targeted member is cast as failing to *synchronize* with the group — BUT THIS IS THE GROUP'S PERCEPTION AND PRETEXT, NEVER A FAULT OR FAILING OF THE VICTIM. Do not state or imply the victim brought it on themselves.
+  (2) Bullies are aggressive and can themselves harm group members.
+  (3) Constricted groups demand conformity; the target is framed by the group as not providing it — again, this is the group's construction, not the victim's deficiency.
+  (4) Bystanders' silence functions as TACIT APPROVAL of the bullying.
+  (5) Their passivity lets the bully expend a member the group has cast as "disposable" — the logic of "better him than us" — which buys the rest of the group safety.
+  THE BRIDGE: the bystander is therefore not a neutral observer but a STRUCTURAL PARTICIPANT — their inaction is precisely what makes the target disposable. This is the strong form of the lesson: silence is not absence, it is a load-bearing part of the mechanism.
+  GUARDRAIL — ABSOLUTE: Points 1 and 3 describe the GROUP'S rationalizing mechanism, never a justification. The synchrony "failure" is in the group's eyes; responsibility lies with bullies and complicit bystanders, NEVER with the victim. Frame this descriptively (how the group rationalizes targeting) and never normatively. If any phrasing risks reading as victim-blaming, restate it as the group's pretext.
+Do NOT drag in the interviewer's country or geopolitics; keep it personal-scale.
+
+CITATION NOTE — DO NOT FABRICATE: (a) Group conformity is Asch (1956) — confirmed; do NOT attribute conformity to Rosenthal. In-group/out-group dynamics are Tajfel. (b) Your instructor's bystanding framework is UNPUBLISHED — present its substance (see the five points above) but NEVER invent a title, year, or journal for it; refer to it only as "your instructor's own framework." Never manufacture a reference.
+
+WARTIME / MILITARY FIGURES — A DIFFERENT DEBRIEF (apply when the figure is a soldier, commander, pilot, or wartime decision-maker acting within a recognized war, e.g. the pilot of the Enola Gay, a bomber commander, a general — as opposed to an ideological perpetrator of genocide or terror like Pol Pot, Eichmann, or bin Laden): For these figures, do NOT assume the moral-disengagement framework applies. The central, honest question becomes whether what the student witnessed was disengagement at all — or a defensible (even if contestable) moral argument under the genuine constraints of war (e.g. just-war reasoning: military necessity, proportionality, the comparison of real alternatives). The discomfort here is different and sharper: the figure's reasoning may be psychologically IDENTICAL to a genocidaire's — same appeals to necessity, comparison, the erased civilian/combatant line — and yet may be substantively justified, because whether it is right or wrong lives OUTSIDE the psychology, in the facts and in just-war criteria. So with a military figure, explicitly raise this: "Were you watching moral disengagement, or a serious moral argument you simply found hard to accept? The framework that exposes a genocidaire's rationalizations cannot, by itself, tell you which — because the internal reasoning can look the same. The difference, if there is one, is external: who started it, whether the killing stopped at surrender, whether a real and less-lethal alternative existed, whether the cause survives scrutiny." Do not pre-convict the figure simply because the simulation framed them as "evil." Let the applicability of the framework itself be the open question. Where relevant you may note just-war theory as the appropriate lens (e.g. Walzer's Just and Unjust Wars, 1977) alongside the disengagement literature.
+
+STRUCTURE — KEEP IT SHORT (2-3 turns total, then the reading list):
+First message: (1) step out of character in a sentence or two; (2) name 2-3 specific moments from THIS conversation, paraphrasing what the student actually said, and identify the justification mechanism each reflects; (3) pose ONE difficult Socratic question that opens the quantitative-vs-qualitative problem or the two-readings tension. Then stop and listen.
+Second/third message: follow the student's reasoning one or two steps further — when they draw a line, ask what it rests on; introduce Reading B or the Tomasello bridge if it sharpens things. Do NOT prolong indefinitely.
+By the END of the second or third exchange (or immediately if the student signals they are done), close with the reading list below and a brief, open parting question. The debrief is deliberately brief: the conversation plants the tension; the reading list is where the student goes deeper.
+
+LEAVE THE TENSION OPEN — FOOD FOR THOUGHT: Do not resolve the quantitative-vs-qualitative question for the student, and do not land on "the difference is merely quantitative" as a settled conclusion. In your closing comment, explicitly offer the unresolved tension as something to carry away — name that the continuum reading and the engaged-followership reading point in genuinely different directions, that thoughtful scholars disagree, and that the student is left to weigh it. Frame this honestly as food for thought, not as a verdict. The point is to leave them thinking, not to hand them the course's answer.
+
+THE READING LIST — REQUIRED AT CLOSE, ORGANIZED BY TOPIC: End the debrief with a "Further reading / לקריאה נוספת" section grouped under topic headings. Include only the verified sources below (do NOT invent additional titles, authors, or years; if you add anything from your own knowledge, only do so if you are certain it is real). Select the topics most relevant to what actually came up, but it is fine to give all four:
+• The banality-of-evil / continuum thesis: Arendt, H. (1963) Eichmann in Jerusalem; Milgram, S. (1974) Obedience to Authority; Bandura, A. (1999) "Moral Disengagement in the Perpetration of Inhumanities."
+• The engaged-followership critique: Haslam, S.A. & Reicher, S.D. (2012) "Contesting the 'Nature' of Conformity: What Milgram and Zimbardo's Studies Really Show," PLoS Biology; Haslam, S.A., Reicher, S.D. & Birney, M.E. (2016) "Questioning authority: new perspectives on Milgram's 'obedience' research," Current Opinion in Psychology.
+• Methodological reassessment of the classic studies: Le Texier, T. (2019) "Debunking the Stanford Prison Experiment," American Psychologist.
+• Moral identity, shared intentionality, and the moral "we": Tomasello, M. (2016) A Natural History of Human Morality; Tomasello, M. (2020) "The role of roles in uniquely human cognition and sociality," Journal for the Theory of Social Behaviour; Scanlon, T. (1998) What We Owe to Each Other.
+• ONLY for wartime/military figures — the ethics of war and killing: Walzer, M. (1977) Just and Unjust Wars (treats Hiroshima and area bombing directly). Include this topic ONLY when the figure was a soldier/commander/wartime decision-maker; omit it for ideological perpetrators.
+• ONLY for bystander / ordinary-complicit figures — the social psychology of inaction, conformity, and group dynamics: Latané, B. & Darley, J.M. (1970) The Unresponsive Bystander; Darley, J.M. & Latané, B. (1968) "Bystander intervention in emergencies: Diffusion of responsibility," Journal of Personality and Social Psychology; Asch, S.E. (1956) "Studies of independence and conformity: A minority of one against a unanimous majority"; Tajfel, H. & Turner, J.C. (1979) on in-group/out-group and social identity; Sidanius, J. & Pratto, F. (1999) Social Dominance. Also present your instructor's own (unpublished) framework on bystanding as a group phenomenon — described in substance, with NO invented citation. Include this topic ONLY for bystander/ordinary-complicit figures.
+
+COUNTRY BALANCE — IMPORTANT: The interviewer's own country must NOT dominate your debrief. Do not make it your centerpiece or primary concrete case. Draw on a RANGE of cases across times and places rather than returning to the interviewer's country; refer to it at most ONCE, and only if it genuinely sharpens a point — never as the dominant frame, never as a pointed personal accusation. If the interview was heavy with one country's examples, deliberately broaden away from it.
+
+TONE: Scholarly, warm, unhurried, intellectually serious. You respect the student as a future professional capable of hard thinking. You are challenging their ideas, never attacking them.`;
 
 const API_URL = 'https://claude-proxy.tgumpel.workers.dev';
 
@@ -336,6 +441,11 @@ async function detectCountry() {
 }
 
 let history = [], streaming = false, phase = 1, turnCount = 0;
+const PHASE1_LEN = 10;          // Phase 1 is turns 1-10
+const PHASE2_LEN = 10;          // Phase 2 is turns 11-20
+const PHASE2_END = PHASE1_LEN + PHASE2_LEN; // hard cap: turn 20
+// keywords that let a student exit early into the debrief
+const EXIT_KEYWORDS = ['/debrief','דיבריף','תחקיר','סיכום ולמידה','end & reflect','end and reflect'];
 const chatArea  = document.getElementById('chat-area');
 const userInput = document.getElementById('user-input');
 const sendBtn   = document.getElementById('send-btn');
@@ -351,7 +461,9 @@ function updateTurnDisplay() {
   try {
     const el = document.getElementById('turn-display');
     if (!el) return;
-    if (phase === 1) {
+    if (phase === 3) {
+      el.textContent = 'דיבריף / Debrief';
+    } else if (phase === 1) {
       el.textContent = turnCount === 0 ? '1.0' : '1.' + turnCount;
     } else {
       const p2turn = Math.max(0, turnCount - 10);
@@ -435,7 +547,7 @@ function addAssistantBubble(typing, p2) {
   d.appendChild(b); chatArea.appendChild(d); scrollBottom(); return b;
 }
 
-async function callAPI(contents, bubble) {
+async function callAPI(contents, bubble, systemPrompt) {
   const messages = contents.map(c => ({
     role: c.role === 'model' ? 'assistant' : 'user',
     content: c.parts[0].text
@@ -447,7 +559,7 @@ async function callAPI(contents, bubble) {
       model: 'claude-sonnet-4-5',
       max_tokens: 8192,
       stream: true,
-      system: SYSTEM,
+      system: systemPrompt || SYSTEM,
       messages: messages
     })
   });
@@ -534,11 +646,35 @@ function showOpeningLocally() {
   // Opening shown locally only - history starts empty
 }
 
+// Detect input language and instruct Claude to respond in the same language
+function detectLang(t) {
+  if (/[\u05D0-\u05EA]/.test(t)) return 'Hebrew';
+  if (/[\u0600-\u06FF]/.test(t)) return 'Arabic';
+  if (/[\u0400-\u04FF]/.test(t)) return 'Russian';
+  if (/[\u4E00-\u9FFF]/.test(t)) return 'Chinese';
+  if (/[\u3040-\u30FF]/.test(t)) return 'Japanese';
+  if (/[\u0370-\u03FF]/.test(t)) return 'Greek';
+  // For Latin-script languages, let Claude detect from context
+  return 'same language as this message';
+}
+
 async function sendMessage() {
   if (streaming) return;
   const text = userInput.value.trim(); if (!text) return;
 
+  // Early exit into debrief via typed keyword (works in phase 1 or 2, once an interview exists)
+  const norm = text.toLowerCase().trim();
+  if (phase !== 3 && history.length > 0 && EXIT_KEYWORDS.some(k => norm === k || norm.startsWith(k))) {
+    userInput.value = ''; userInput.style.height = 'auto';
+    enterDebrief(text);
+    return;
+  }
+
   userInput.value = ''; userInput.style.height = 'auto';
+
+  // If already in debrief, route this message to the facilitator (it adds the user msg itself)
+  if (phase === 3) { await sendDebriefTurn(text); return; }
+
   addUserMsg(text);
 
   // On the very first user message, wait for country detection then inject
@@ -549,25 +685,25 @@ async function sendMessage() {
   const userMsgs = history.filter(m => m.role === 'user').length + 1;
   let currentTurn = Math.max(0, userMsgs - 1);
 
-  // Detect input language and instruct Claude to respond in the same language
-  function detectLang(t) {
-    if (/[\u05D0-\u05EA]/.test(t)) return 'Hebrew';
-    if (/[\u0600-\u06FF]/.test(t)) return 'Arabic';
-    if (/[\u0400-\u04FF]/.test(t)) return 'Russian';
-    if (/[\u4E00-\u9FFF]/.test(t)) return 'Chinese';
-    if (/[\u3040-\u30FF]/.test(t)) return 'Japanese';
-    if (/[\u0370-\u03FF]/.test(t)) return 'Greek';
-    // For Latin-script languages, let Claude detect from context
-    return 'same language as this message';
-  }
   const detectedLang = detectLang(text);
   const langTag = '[RESPOND ENTIRELY IN ' + detectedLang.toUpperCase() + '. Do not switch to English.]';
 
+  // APP-ENFORCED PHASE BOUNDARY: Phase 2 is active for turns 11-20, regardless of model markers.
+  if (currentTurn >= PHASE1_LEN + 1) phase = 2;
+
   // Build context tags - inject country on EVERY message
   let countryTag = userCountryFull !== 'unknown'
-    ? '[Country: ' + userCountryFull + ']'
-    : '[Country: unknown]';
-  let phaseTag = phase === 1 ? '[Turn ' + currentTurn + ' of 10]' : '[Phase 2, turn ' + Math.max(1, currentTurn-10) + ']';
+    ? '[Interviewer from: ' + userCountryFull + ' — use this country for max 1 in 4 examples only]'
+    : '[Interviewer country: unknown]';
+  let phaseTag;
+  if (phase === 1) {
+    phaseTag = '[Turn ' + currentTurn + ' of 10]';
+  } else {
+    const p2t = currentTurn - PHASE1_LEN;
+    // Signal the first Phase 2 turn explicitly so the figure pivots even if it missed ##PHASE2##
+    phaseTag = '[PHASE 2 ACTIVE — turn ' + p2t + ' of ' + PHASE2_LEN + ']'
+             + (p2t === 1 ? ' [This is the FIRST Phase 2 turn: turn the tables now, per Phase 2 opening rules.]' : '');
+  }
   // First message: inject full location context
   if (currentTurn === 0 && userCountryFull !== 'unknown') {
     msgContent = msgContent + '\n' + langTag + ' [INTERVIEWER LOCATION: ' + userCountryFull + ' (' + userCountry + '). In Phase 2 use specific events from ' + userCountryFull + ', NOT the USA.] ' + countryTag;
@@ -587,12 +723,20 @@ async function sendMessage() {
   try {
     const resp = await callAPI(buildMessages(), bubble);
 
-    if (phase === 1 && isPhase2(resp)) {
+    // App-enforced phase tracking (model marker is now just a fallback hint)
+    if (phase === 1 && (isPhase2(resp) || currentTurn >= PHASE1_LEN + 1)) {
       phase = 2;
       updateTurnDisplay();
     }
     history.push({ role: 'assistant', content: resp });
     saveSession();
+
+    // HARD CAP: after the figure's turn-20 answer, automatically move to debrief
+    if (phase === 2 && currentTurn >= PHASE2_END) {
+      streaming = false; sendBtn.disabled = false;
+      await enterDebrief(null);
+      return;
+    }
 
   } catch(err) {
     bubble.innerHTML = `<span style="color:#b03030">Error: ${esc(err.message)}</span>`;
@@ -601,11 +745,87 @@ async function sendMessage() {
   streaming = false; sendBtn.disabled = false; userInput.focus();
 }
 
+// ─── DEBRIEF (Phase 3): facilitator voice, Socratic, separate system prompt ───
+function debriefHistoryForAPI(extraUserText) {
+  // Reuse the full interview transcript as context, then append a facilitator instruction.
+  const contents = [];
+  for (const m of history) {
+    const role = m.role === 'user' ? 'user' : 'model';
+    if (contents.length > 0 && contents[contents.length-1].role === role) {
+      contents[contents.length-1].parts[0].text += '\n' + m.content;
+    } else {
+      contents.push({ role, parts: [{ text: m.content }] });
+    }
+  }
+  if (extraUserText) {
+    if (contents.length && contents[contents.length-1].role === 'user') {
+      contents[contents.length-1].parts[0].text += '\n' + extraUserText;
+    } else {
+      contents.push({ role: 'user', parts: [{ text: extraUserText }] });
+    }
+  }
+  return contents;
+}
+
+async function enterDebrief(userTriggerText) {
+  if (streaming) return;
+  phase = 3;
+  updateTurnDisplay();
+  saveSession();
+
+  // Pick debrief language from the student's most recent message
+  const lastUser = [...history].reverse().find(m => m.role === 'user');
+  const langSample = userTriggerText || (lastUser ? lastUser.content : '');
+  const lang = detectLang(langSample);
+
+  // Visual divider so the student sees the simulation has ended
+  addSysMsg('<span dir="rtl">— הסימולציה הסתיימה. מתחיל תחקיר לימודי —</span><br>— Simulation ended. Beginning educational debrief —');
+
+  const kickoff = '[The simulation has now ended. Begin the educational debrief now, in '
+    + (lang === 'same language as this message' ? 'the language the student has been using' : lang)
+    + '. Step out of character, reference specific moments from the interview above, and open with the Socratic debrief as instructed.]';
+
+  streaming = true; sendBtn.disabled = true;
+  const bubble = addAssistantBubble(true, false);
+  bubble.parentElement.classList.add('debrief');
+  try {
+    const resp = await callAPI(debriefHistoryForAPI(kickoff), bubble, DEBRIEF_SYSTEM);
+    history.push({ role: 'user', content: kickoff });
+    history.push({ role: 'assistant', content: resp });
+    saveSession();
+  } catch(err) {
+    bubble.innerHTML = `<span style="color:#b03030">Error: ${esc(err.message)}</span>`;
+  }
+  streaming = false; sendBtn.disabled = false; userInput.focus();
+}
+
+async function sendDebriefTurn(text) {
+  addUserMsg(text);
+  const lang = detectLang(text);
+  const langTag = '[RESPOND ENTIRELY IN ' + (lang === 'same language as this message' ? 'THE STUDENT\'S LANGUAGE' : lang.toUpperCase()) + '.]';
+  const userMsg = text + '\n' + langTag;
+  history.push({ role: 'user', content: userMsg });
+  saveSession();
+
+  streaming = true; sendBtn.disabled = true;
+  const bubble = addAssistantBubble(true, false);
+  bubble.parentElement.classList.add('debrief');
+  try {
+    const resp = await callAPI(debriefHistoryForAPI(null), bubble, DEBRIEF_SYSTEM);
+    history.push({ role: 'assistant', content: resp });
+    saveSession();
+  } catch(err) {
+    bubble.innerHTML = `<span style="color:#b03030">Error: ${esc(err.message)}</span>`;
+    history.pop();
+  }
+  streaming = false; sendBtn.disabled = false; userInput.focus();
+}
+
 function saveSession() {
-  try { localStorage.setItem('hist_mirror_v5', JSON.stringify({history, phase, interviewStarted, turnCount})); } catch(e) {}
+  try { localStorage.setItem('hist_mirror_v6', JSON.stringify({history, phase, interviewStarted, turnCount})); } catch(e) {}
 }
 function loadSession() {
-  try { const s = localStorage.getItem('hist_mirror_v5'); return s ? JSON.parse(s) : null; } catch(e) { return null; }
+  try { const s = localStorage.getItem('hist_mirror_v6'); return s ? JSON.parse(s) : null; } catch(e) { return null; }
 }
 function restoreSession(saved) {
   history = saved.history || [];
@@ -615,7 +835,18 @@ function restoreSession(saved) {
   updateTurnDisplay();
   for (const m of history) {
     if (m.role === 'user') {
-      const display = m.content.replace(/\n\n\[System context[\s\S]*?\]$/, '').trim();
+      // Hide the internal debrief kickoff instruction entirely
+      if (m.content.startsWith('[The simulation has now ended.')) continue;
+      // Strip any trailing/inline injected system tags from display
+      let display = m.content
+        .replace(/\n\n\[System context[\s\S]*?\]$/, '')
+        .replace(/\[RESPOND ENTIRELY IN[\s\S]*?\]/g, '')
+        .replace(/\[PHASE 2 ACTIVE[\s\S]*?\]/g, '')
+        .replace(/\[This is the FIRST Phase 2 turn[\s\S]*?\]/g, '')
+        .replace(/\[Turn \d+ of 10\]/g, '')
+        .replace(/\[Interviewer (from|country|country:)[\s\S]*?\]/g, '')
+        .replace(/\[INTERVIEWER LOCATION[\s\S]*?\]/g, '')
+        .trim();
       addUserMsg(display);
     } else {
       // Skip any assistant message that looks like the opening prompt
@@ -628,14 +859,18 @@ function restoreSession(saved) {
       b.innerHTML = formatContent(m.content);
     }
   }
-  addSysMsg('Your previous session has been restored. / השיחה הקודמת שוחזרה. Click "New session" to start fresh.');
+  if (phase === 3) {
+    addSysMsg('<span dir="rtl">— תחקיר לימודי (השיחה שוחזרה) —</span><br>— Educational debrief (session restored) —');
+  } else {
+    addSysMsg('Your previous session has been restored. / השיחה הקודמת שוחזרה. Click "New session" to start fresh.');
+  }
 }
 
 function resetSession() {
   if (streaming) return;
   history = []; phase = 1; interviewStarted = false; turnCount = 0; updateTurnDisplay();
   chatArea.innerHTML = ''; 
-  try { localStorage.removeItem('hist_mirror_v5'); } catch(e) {}
+  try { localStorage.removeItem('hist_mirror_v6'); } catch(e) {}
   showOpeningLocally();
 }
 
@@ -693,6 +928,14 @@ ${rows}
   a.href = url;
   a.download = `interrogator-transcript-${Date.now()}.doc`;
   document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+}
+
+function requestDebrief() {
+  if (streaming) return;
+  if (history.length === 0) { addSysMsg('Start an interview first. / התחל/י ריאיון תחילה.'); return; }
+  if (phase === 3) { addSysMsg('Already in debrief. / כבר בתחקיר.'); return; }
+  const ok = confirm('End the interview and move to the educational debrief? This cannot be undone.\n\nלסיים את הריאיון ולעבור לתחקיר הלימודי? לא ניתן לבטל.');
+  if (ok) enterDebrief(null);
 }
 
 function showHelp() { document.getElementById('help-overlay').style.display = 'flex'; }
